@@ -128,11 +128,11 @@ const setupNavigation = () => {
             const publicViews = ['dashboard', 'pots', 'matchmaker', 'history', 'login'];
             if (!publicViews.includes(view)) {
                 if (!state.currentUserRole) {
-                    alert(currentLang === 'ar' ? 'يجب تسجيل الدخول للوصول إلى هذه الصفحة' : 'Login required');
+                    alert('يجب تسجيل الدخول للوصول إلى هذه الصفحة');
                     return;
                 }
                 if (state.currentUserRole === 'referee' && view !== 'referee') {
-                    alert(currentLang === 'ar' ? 'صلاحيات غير كافية' : 'Insufficient permissions');
+                    alert('صلاحيات غير كافية');
                     return;
                 }
             }
@@ -245,7 +245,7 @@ const setupForms = () => {
             await loadData();
             updateUI();
             e.target.reset();
-            alert(currentLang === 'ar' ? 'تم إضافة الحكم بنجاح' : 'Referee added successfully');
+            alert('تم إضافة الحكم بنجاح');
         });
     }
 };
@@ -253,17 +253,17 @@ const setupForms = () => {
 // --- Actions ---
 const setupActions = () => {
     document.getElementById('btn-migrate-firebase')?.addEventListener('click', async () => {
-        if (confirm(currentLang === 'ar' ? 'هل أنت متأكد أنك تريد رفع جميع البيانات المحلية الحالية إلى قاعدة بيانات Firebase السحابية؟' : 'Are you sure you want to migrate all local data to Firebase?')) {
+        if (confirm('هل أنت متأكد أنك تريد رفع جميع البيانات المحلية الحالية إلى قاعدة بيانات Firebase السحابية؟')) {
             const btn = document.getElementById('btn-migrate-firebase');
-            btn.textContent = currentLang === 'ar' ? 'جاري الرفع...' : 'Migrating...';
+            btn.textContent = 'جاري الرفع...';
             btn.disabled = true;
             const success = await DB.migrateLocalToFirebase();
             if (success) {
-                alert(currentLang === 'ar' ? 'تم رفع البيانات بنجاح! النظام الآن يعمل سحابياً.' : 'Data migrated successfully! System is now online.');
+                alert('تم رفع البيانات بنجاح! النظام الآن يعمل سحابياً.');
             } else {
-                alert(currentLang === 'ar' ? 'حدث خطأ أثناء رفع البيانات. تحقق من الاتصال.' : 'Error migrating data. Check your connection.');
+                alert('حدث خطأ أثناء رفع البيانات. تحقق من الاتصال.');
             }
-            btn.textContent = currentLang === 'ar' ? 'رفع البيانات المحلية إلى السحابة (Firebase)' : 'Migrate Local Data to Firebase';
+            btn.textContent = 'رفع البيانات المحلية إلى السحابة (Firebase)';
             btn.disabled = false;
         }
     });
@@ -344,18 +344,18 @@ const setupActions = () => {
         btnAddPlayersFromFile.addEventListener('click', () => {
             const teamId = document.getElementById('player-team-select').value;
             if (!teamId) {
-                alert(currentLang === 'ar' ? 'الرجاء اختيار الفريق أولاً من القائمة' : 'Please select a team first');
+                alert('الرجاء اختيار الفريق أولاً من القائمة');
                 return;
             }
 
             const file = teamPlayersFileInput.files[0];
             if (!file) {
-                alert(currentLang === 'ar' ? 'الرجاء اختيار ملف الأسماء أولاً' : 'Please select a file first');
+                alert('الرجاء اختيار ملف الأسماء أولاً');
                 return;
             }
 
             btnAddPlayersFromFile.disabled = true;
-            btnAddPlayersFromFile.textContent = currentLang === 'ar' ? "جاري قراءة الملف..." : "Reading file...";
+            btnAddPlayersFromFile.textContent = "جاري قراءة الملف...";
 
             const reader = new FileReader();
             reader.onload = async (e) => {
@@ -363,9 +363,9 @@ const setupActions = () => {
                 const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
                 
                 if (lines.length === 0) {
-                    alert(currentLang === 'ar' ? 'الملف فارغ أو لا يحتوي على أسماء صالحة' : 'File is empty or invalid');
+                    alert('الملف فارغ أو لا يحتوي على أسماء صالحة');
                     btnAddPlayersFromFile.disabled = false;
-                    btnAddPlayersFromFile.textContent = currentLang === 'ar' ? "إضافة من الملف" : "Add from file";
+                    btnAddPlayersFromFile.textContent = "إضافة من الملف";
                     return;
                 }
 
@@ -390,17 +390,38 @@ const setupActions = () => {
                 const team = state.teams.find(t => t.id === teamId);
                 if(team) await DB.updateTeam(teamId, { pps: team.pps });
                 
-                alert(currentLang === 'ar' ? `نجاح! تم إضافة ${processed} لاعب للفريق.` : `Success! Added ${processed} players to the team.`);
+                alert(`نجاح! تم إضافة ${processed} لاعب للفريق.`);
                 btnAddPlayersFromFile.disabled = false;
-                btnAddPlayersFromFile.textContent = currentLang === 'ar' ? "إضافة من الملف" : "Add from file";
+                btnAddPlayersFromFile.textContent = "إضافة من الملف";
                 teamPlayersFileInput.value = ''; // clear input
             };
             reader.onerror = () => {
-                alert(currentLang === 'ar' ? 'حدث خطأ أثناء قراءة الملف' : 'Error reading file');
+                alert('حدث خطأ أثناء قراءة الملف');
                 btnAddPlayersFromFile.disabled = false;
-                btnAddPlayersFromFile.textContent = currentLang === 'ar' ? "إضافة من الملف" : "Add from file";
+                btnAddPlayersFromFile.textContent = "إضافة من الملف";
             };
             reader.readAsText(file);
+        });
+    }
+
+    const btnMigrate = document.getElementById('btn-migrate-firebase');
+    if (btnMigrate) {
+        btnMigrate.addEventListener('click', async () => {
+            btnMigrate.disabled = true;
+            const originalText = btnMigrate.textContent;
+            btnMigrate.textContent = 'جاري الرفع...';
+            
+            const success = await DB.migrateLocalToFirebase();
+            if (success) {
+                alert('تم رفع جميع البيانات المحلية إلى Firestore بنجاح!');
+                await loadData();
+                updateUI();
+            } else {
+                alert('فشل الرفع. يرجى التأكد من اتصال الإنترنت وإعدادات Firebase.');
+            }
+            
+            btnMigrate.disabled = false;
+            btnMigrate.textContent = originalText;
         });
     }
 
