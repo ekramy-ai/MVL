@@ -11,9 +11,6 @@ let state = {
     matches: [],
     referees: [],
     currentRound: 1,
-    matches: [],
-    referees: [],
-    currentRound: 1,
     activeMatchId: null,
     currentUserRole: null,
     filters: { group: '', team: '' }
@@ -29,6 +26,7 @@ const init = async () => {
     
     // Initial empty render
     renderTeamsSelect();
+    updateUI(); // Ensure UI state (hidden sidebar) is set immediately
     
     // Auth Listener
     const loginForm = document.getElementById('login-form');

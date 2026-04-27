@@ -89,7 +89,7 @@ body {
 
 /* ── Navigation (Bottom Mobile / Sidebar Desktop) ── */
 .nav {
-  display: flex;
+  display: none; /* Hidden by default, shown by JS on login */
   border-top: 1px solid var(--surface2);
   flex-shrink: 0;
   background: #08101e;
