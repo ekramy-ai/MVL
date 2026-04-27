@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#020617">
+<title>XURA Tournament Engine — Complete</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --teal:#5eead4;--teal-d:#0d9488;--teal-bg:#134e4a;
+  --blue:#60a5fa;--blue-d:#1d4ed8;--blue-bg:#1e3a5f;
+  --amber:#f59e0b;--amber-d:#d97706;--amber-bg:#422006;
+  --purple:#a78bfa;--purple-d:#7c3aed;--purple-bg:#2e1065;
+  --green:#4ade80;--green-d:#16a34a;--green-bg:#052e16;
+  --red:#f87171;--red-d:#dc2626;--red-bg:#450a0a;
+  --bg:#020617;--surface:#0f172a;--surface2:#1e293b;--surface3:#0a1020;
+  --muted:#475569;--faint:#334155;--text:#e2e8f0;--text2:#94a3b8;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:'Noto Sans Arabic','Segoe UI',Tahoma,sans-serif;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;position:relative}
+
+/* ── Top Bar ── */
+#topbar{padding:10px 14px;border-bottom:1px solid var(--surface2);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:#030918}
+#topbar h1{font-size:13px;font-weight:900;letter-spacing:.12em;color:var(--teal)}
+.r-badge{font-size:10px;padding:3px 8px;border-radius:6px;background:var(--teal-bg);color:var(--teal);font-weight:700}
+
+/* ── Bottom Nav ── */
+#nav{display:flex;border-top:1px solid var(--surface2);flex-shrink:0;background:#08101e}
+.nav-btn{flex:1;padding:6px 1px;border:none;background:transparent;color:var(--muted);
+  cursor:pointer;font-size:8.5px;font-family:inherit;display:flex;flex-direction:column;
+  align-items:center;gap:2px;transition:color .15s}
+.nav-btn .ico{font-size:16px}
+.nav-btn.active{color:var(--teal)}
+
+/* ── Screens ── */
+#screens{flex:1;overflow-y:auto;overflow-x:hidden}
+.screen{display:none;animation:sIn .2s ease;padding-bottom:10px}
+.screen.active{display:block}
+@keyframes sIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Section ── */
+.sec{padding:11px 11px 0}
+.sec-title{font-size:9.5px;font-weight:700;color:var(--faint);letter-spacing:.12em;
+  text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+
+/* ── Card ── */
+.card{background:var(--surface);border:1px solid var(--surface2);border-radius:13px;padding:12px;margin-bottom:8px}
+.card-sm{background:var(--surface3);border:1px solid #0e1929;border-radius:10px;padding:9px;margin-bottom:6px}
+
+/* ── Table ── */
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{color:var(--faint);font-weight:600;padding:6px 6px;text-align:right;font-size:9.5px;border-bottom:1px solid var(--surface2)}
+.tbl td{padding:6px 6px;border-bottom:1px solid #060e1a}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#080f1d}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:2px 6px;border-radius:5px;font-size:9.5px;font-weight:700}
+.ba{background:#3f1d00;color:#fbbf24}.bb{background:var(--teal-bg);color:var(--teal)}
+.bc{background:var(--blue-bg);color:var(--blue)}.bwon{background:var(--green-bg);color:var(--green)}
+.blost{background:var(--red-bg);color:var(--red)}.bdraw{background:#1e293b;color:var(--muted)}
+
+/* ── Buttons ── */
+.btn{padding:9px 14px;border-radius:11px;border:none;cursor:pointer;font-size:12px;
+  font-family:inherit;font-weight:700;transition:transform .1s,filter .1s;touch-action:manipulation}
+.btn:active{transform:scale(.94);filter:brightness(1.15)}
+.btn-primary{background:var(--teal-d);color:#fff}
+.btn-amber{background:var(--amber-d);color:#fff}
+.btn-red{background:var(--red-d);color:#fff}
+.btn-purple{background:var(--purple-d);color:#fff}
+.btn-ghost{background:transparent;border:1px solid var(--surface2);color:var(--muted)}
+.btn-sm{padding:5px 9px;font-size:10.5px;border-radius:8px}
+.btn-full{width:100%;display:block;margin-top:6px}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+
+/* ── Form ── */
+.fg{margin-bottom:8px}
+.fl{font-size:10px;color:var(--muted);margin-bottom:3px;display:block}
+.fi{width:100%;background:var(--surface2);border:1px solid var(--faint);
+  border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
+.fi:focus{border-color:var(--teal-d)}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.fi-sel{appearance:none;-webkit-appearance:none;background:var(--surface2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23475569' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E") no-repeat left 10px center;padding-left:28px}
+
+/* ── PPS bar ── */
+.pb{display:flex;align-items:center;gap:5px;font-size:10px}
+.pt{flex:1;height:3px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.pf{height:100%;border-radius:2px;transition:width .5s}
+
+/* ── Stats Grid ── */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:11px}
+.sb{background:var(--surface);border:1px solid var(--surface2);border-radius:11px;padding:9px;text-align:center}
+.sn{font-size:20px;font-weight:900;line-height:1}
+.sl{font-size:9px;color:var(--faint);margin-top:2px}
+
+/* ── Match Card ── */
+.mc{background:var(--surface);border:1px solid var(--surface2);border-radius:11px;
+  padding:9px 11px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.mc:hover{border-color:var(--faint)}
+.mc.done{border-color:#0f2e1a}
+.mc.live{border-color:var(--red);animation:livePulse 2s infinite}
+@keyframes livePulse{0%,100%{border-color:var(--red)}50%{border-color:#7f1d1d}}
+.mt{display:flex;align-items:center;justify-content:space-between;gap:5px}
+.mtn{font-size:12px;font-weight:700}
+.msd{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.mm{font-size:9.5px;color:var(--faint);margin-top:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* ── Ranking ── */
+.rr{display:grid;grid-template-columns:22px 1fr auto 40px;gap:6px;
+  align-items:center;padding:7px;border-radius:9px;margin-bottom:3px;
+  background:var(--surface);border:1px solid #0a111e}
+.rn{font-size:13px;font-weight:900;color:var(--muted);text-align:center}
+.gold{color:var(--amber)}.silver{color:#94a3b8}.bronze{color:#a16207}
+.rp{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--teal)}
+
+/* ── Group ── */
+.gb{background:var(--surface);border:1px solid var(--surface2);border-radius:13px;padding:10px;margin-bottom:8px}
+.gh{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;
+  padding-bottom:7px;border-bottom:1px solid var(--surface2)}
+
+/* ── Inner Tabs ── */
+.itabs{display:flex;gap:5px;padding:0 0 9px;overflow-x:auto;flex-wrap:wrap}
+.itab{padding:4px 11px;border-radius:18px;border:1px solid var(--surface2);
+  background:transparent;color:var(--muted);font-size:10.5px;font-family:inherit;
+  cursor:pointer;white-space:nowrap;transition:all .1s;flex-shrink:0}
+.itab.active{background:var(--teal-bg);color:var(--teal);border-color:var(--teal-bg)}
+
+/* ── Rotation Board ── */
+.rot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
+.rot-pos{background:var(--surface2);border-radius:10px;padding:8px;text-align:center;
+  border:1.5px solid transparent;transition:all .25s}
+.rot-pos.serving{border-color:var(--amber);background:#2a1800}
+.rot-pos.subbed{border-color:var(--purple);background:#1a0a2e}
+.rot-pos-num{font-size:9px;color:var(--faint);margin-bottom:3px}
+.rot-pos-name{font-size:11px;font-weight:700;line-height:1.2}
+.rot-pos-age{font-size:9px;color:var(--muted)}
+
+/* ── Live Match ── */
+.lm-score{display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 0}
+.lm-sn{font-size:72px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-2px}
+.lm-div{font-size:24px;color:var(--faint);font-weight:200}
+.lm-btn{height:72px;border-radius:16px;border:2px solid;font-size:14px;font-weight:800;
+  color:#fff;cursor:pointer;font-family:inherit;transition:transform .1s,filter .1s;touch-action:manipulation}
+.lm-btn:active{transform:scale(.91);filter:brightness(1.2)}
+
+/* ── Participation ── */
+.plog-row{display:flex;align-items:center;gap:6px;padding:6px;border-bottom:1px solid #06101a;font-size:11px}
+.plog-row:last-child{border-bottom:none}
+.plog-bar{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.plog-fill{height:100%;border-radius:2px;background:var(--teal-d)}
+
+/* ── Modals ── */
+#mo{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;
+  display:none;align-items:flex-end;justify-content:center}
+#mo.open{display:flex;animation:fadeIn .15s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+#mb{width:100%;max-width:480px;background:var(--surface);border-radius:22px 22px 0 0;
+  padding:16px;max-height:90vh;overflow-y:auto;animation:slideUp .2s ease}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+#mt{font-size:14px;font-weight:700;margin-bottom:13px;display:flex;justify-content:space-between;align-items:center}
+#mc{font-size:20px;cursor:pointer;color:var(--muted);line-height:1;padding:2px}
+#mb::-webkit-scrollbar{width:2px}
+#mb::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:2px}
+
+/* ── Full Screen ── */
+#full{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;
+  flex-direction:column;max-width:480px;margin:0 auto}
+#full.open{display:flex}
+
+/* ── Report ── */
+.rep-section{padding:10px 11px;border-bottom:1px solid var(--surface2)}
+.rep-kv{display:flex;justify-content:space-between;padding:5px 0;font-size:11px;border-bottom:1px solid #060d1a}
+.rep-kv:last-child{border-bottom:none}
+.rep-key{color:var(--text2)}
+.rep-val{font-weight:700;color:var(--text)}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);
+  background:var(--surface2);color:var(--text);padding:6px 15px;border-radius:18px;
+  font-size:11.5px;z-index:500;opacity:0;transition:opacity .3s;
+  pointer-events:none;white-space:nowrap;border:1px solid var(--faint);max-width:90%}
+
+/* ── Scrollbars ── */
+#screens::-webkit-scrollbar{width:2px}
+#screens::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:2px}
+#ai-box::-webkit-scrollbar{width:2px}
+#ai-box::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:2px}
+
+/* ── Pot legend ── */
+.pot-legend{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.pp{padding:3px 9px;border-radius:18px;font-size:10.5px;font-weight:600}
+
+/* ── Swiss viz ── */
+.sw-pair{display:flex;align-items:center;gap:5px;padding:5px;background:#060d1a;
+  border-radius:8px;margin-bottom:4px;font-size:11px}
+
+/* ── Setup hero ── */
+.hero{background:linear-gradient(130deg,#0a2820,#050f1e);
+  border:1px solid var(--teal-d);border-radius:15px;padding:16px;margin-bottom:13px;text-align:center}
+.hero h2{font-size:15px;font-weight:900;color:var(--teal);margin-bottom:3px}
+.hero p{font-size:10.5px;color:var(--muted);line-height:1.7}
+
+/* ── AI ── */
+.ai-msg{margin-bottom:7px;padding:9px 11px;border-radius:11px;font-size:11.5px;line-height:1.85}
+.ai-user{background:var(--teal-bg);color:var(--teal);border-radius:11px 11px 4px 11px}
+.ai-bot{background:var(--surface);color:var(--text);border-radius:11px 11px 11px 4px}
+.ai-loading{color:var(--faint);font-size:11px;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Top Bar -->
+  <div id="topbar">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:18px">⚡</span>
+      <h1>XURA TOURNAMENT</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="r-badge" id="r-badge">الإعداد</span>
+      <span style="font-size:10px;color:var(--faint)" id="live-count"></span>
+    </div>
+  </div>
+
+  <!-- Screens -->
+  <div id="screens">
+
+    <!-- ① SETUP -->
+    <div class="screen active" id="scr-setup">
+      <div class="sec" style="padding-top:11px">
+        <div class="hero">
+          <h2>محرك البطولة الذكي 🏐</h2>
+          <p>كرة الطائرة المصغّرة | الأعمار 9–12 | PPS · الأصص · Swiss Pairing<br>
+          دوران إلزامي · مشاركة الكل · ترتيب موحّد بلا إقصاء</p>
+        </div>
+        <div class="sg">
+          <div class="sb"><div class="sn" id="st-t" style="color:var(--teal)">0</div><div class="sl">فريق</div></div>
+          <div class="sb"><div class="sn" id="st-p" style="color:var(--blue)">0</div><div class="sl">لاعب</div></div>
+          <div class="sb"><div class="sn" id="st-m" style="color:var(--amber)">0</div><div class="sl">مباراة</div></div>
+          <div class="sb"><div class="sn" id="st-d" style="color:var(--green)">0</div><div class="sl">منتهية</div></div>
+        </div>
+        <div id="setup-list"></div>
+        <button class="btn btn-ghost btn-full" onclick="openModal('add-team')">＋ إضافة فريق جديد</button>
+        <button class="btn btn-primary btn-full" id="start-btn" onclick="startTournament()">🚀 بدء البطولة</button>
+        <button class="btn btn-full" style="background:#06101e;color:var(--faint);border:1px solid var(--surface2);margin-top:5px;font-size:11px" onclick="loadDemo()">📦 تحميل بيانات تجريبية (8 فرق · 48 لاعب)</button>
+      </div>
+    </div>
+
+    <!-- ② DASHBOARD -->
+    <div class="screen" id="scr-dashboard">
+      <div class="sec" style="padding-top:11px">
+        <div class="sec-title">الأصص — التصنيف البدني
+          <button class="btn btn-ghost btn-sm" onclick="doReseed()">🔀 إعادة بذر</button>
+        </div>
+        <div class="pot-legend">
+          <div class="pp ba">صيص A — أقوى 30%</div>
+          <div class="pp bb">صيص B — وسط 40%</div>
+          <div class="pp bc">صيص C — أدنى 30%</div>
+        </div>
+        <div id="pots-area"></div>
+        <div class="sec-title" style="margin-top:11px">مجموعات الجولة الحالية
+          <button class="btn btn-primary btn-sm" onclick="generateNextRound()">⟳ جولة جديدة</button>
+        </div>
+        <div id="groups-area"></div>
+        <div class="sec-title" style="margin-top:11px">ملخص البطولة</div>
+        <div id="summary-area"></div>
+      </div>
+    </div>
+
+    <!-- ③ SCHEDULE -->
+    <div class="screen" id="scr-schedule">
+      <div class="sec" style="padding-top:11px">
+        <div class="itabs" id="round-tabs"></div>
+        <div id="sched-list"></div>
+      </div>
+    </div>
+
+    <!-- ④ RANKING -->
+    <div class="screen" id="scr-ranking">
+      <div class="sec" style="padding-top:11px">
+        <div class="sec-title">الترتيب العالمي الموحّد</div>
+        <div style="background:#05080f;border:1px solid var(--surface2);border-radius:10px;padding:8px;margin-bottom:10px;font-size:10px;color:var(--faint);text-align:center;line-height:2">
+          النقطة الكلية =
+          <span style="color:var(--teal)">50% معدل الفوز</span> +
+          <span style="color:var(--amber)">30% فارق النقاط (محدود)</span> +
+          <span style="color:var(--blue)">20% نسبة النقاط</span>
+        </div>
+        <div id="rank-list"></div>
+      </div>
+    </div>
+
+    <!-- ⑤ ROTATION (Module 6) -->
+    <div class="screen" id="scr-rotation">
+      <div class="sec" style="padding-top:11px">
+        <div class="sec-title">📋 سجل المشاركة والدوران</div>
+        <div class="card" style="background:#050a14;padding:10px;margin-bottom:10px;font-size:10px;color:var(--faint);line-height:2">
+          الدوران يحدث تلقائياً بعد كل نقطة · كل لاعب في موقع الإرسال يُستبدل تلقائياً<br>
+          الهدف: ضمان مشاركة <span style="color:var(--green)">جميع اللاعبين</span> في كل مباراة
+        </div>
+        <div id="part-area"></div>
+      </div>
+    </div>
+
+    <!-- ⑥ REPORTS -->
+    <div class="screen" id="scr-reports">
+      <div class="sec" style="padding-top:11px">
+        <div class="sec-title">📊 التقارير
+          <button class="btn btn-ghost btn-sm" onclick="printReport()">🖨 طباعة</button>
+        </div>
+        <div class="itabs" id="rep-tabs">
+          <button class="itab active" onclick="repTab('teams','this')">الفرق</button>
+          <button class="itab" onclick="repTab('players','this')">اللاعبون</button>
+          <button class="itab" onclick="repTab('matches','this')">المباريات</button>
+          <button class="itab" onclick="repTab('pps','this')">PPS</button>
+        </div>
+        <div id="rep-body"></div>
+      </div>
+    </div>
+
+    <!-- ⑦ AI -->
+    <div class="screen" id="scr-ai">
+      <div class="sec" style="padding-top:11px">
+        <div class="sec-title">🤖 المحلل الذكي — Claude AI</div>
+        <div id="ai-box" style="height:calc(100dvh - 330px);overflow-y:auto;margin-bottom:9px">
+          <div id="ai-chat"></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:7px">
+          <input type="text" class="fi" id="ai-inp" placeholder="اسأل عن البطولة..." style="flex:1;font-size:11.5px"
+            onkeydown="if(event.key==='Enter')sendAI()">
+          <button class="btn btn-primary btn-sm" onclick="sendAI()" style="white-space:nowrap">إرسال ✈</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;padding-bottom:10px">
+          <button class="btn btn-ghost btn-sm" onclick="aiQ('قدّم تحليلاً شاملاً للبطولة الحالية مع الإحصائيات')">📊 تحليل شامل</button>
+          <button class="btn btn-ghost btn-sm" onclick="aiQ('من أفضل الفرق؟ لماذا؟ وما نقاط قوتها؟')">🏆 أفضل الفرق</button>
+          <button class="btn btn-ghost btn-sm" onclick="aiQ('ما توصياتك لتحسين تشكيل المجموعات وزيادة التنافسية؟')">🔀 توصيات الجدولة</button>
+          <button class="btn btn-ghost btn-sm" onclick="aiQ('قيّم أداء اللاعبين من خلال مؤشر PPS وقدم ملاحظات')">👥 تقرير اللاعبين</button>
+          <button class="btn btn-ghost btn-sm" onclick="aiQ('ما مستوى التنافسية في البطولة؟ هل التوزيع عادل؟')">⚖️ عدالة التوزيع</button>
+          <button class="btn btn-ghost btn-sm" onclick="aiQ('قدّم تقرير الجولة الحالية وأبرز النتائج')">📋 تقرير الجولة</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Nav -->
+  <div id="nav">
+    <button class="nav-btn active" onclick="goto('setup')" id="nav-setup"><span class="ico">⚙️</span>إعداد</button>
+    <button class="nav-btn" onclick="goto('dashboard')" id="nav-dashboard"><span class="ico">🏟️</span>لوحة</button>
+    <button class="nav-btn" onclick="goto('schedule')" id="nav-schedule"><span class="ico">📅</span>جدول</button>
+    <button class="nav-btn" onclick="goto('ranking')" id="nav-ranking"><span class="ico">🥇</span>ترتيب</button>
+    <button class="nav-btn" onclick="goto('rotation')" id="nav-rotation"><span class="ico">🔄</span>دوران</button>
+    <button class="nav-btn" onclick="goto('reports')" id="nav-reports"><span class="ico">📊</span>تقرير</button>
+    <button class="nav-btn" onclick="goto('ai')" id="nav-ai"><span class="ico">🤖</span>ذكاء</button>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<!-- Modal -->
+<div id="mo" onclick="closeModal()">
+  <div id="mb" onclick="event.stopPropagation()">
+    <div id="mt"><span id="mtt"></span><span id="mc" onclick="closeModal()">✕</span></div>
+    <div id="mbody"></div>
+  </div>
+</div>
+
+<!-- Full Screen (Live Match) -->
+<div id="full">
+  <div style="padding:10px 14px;border-bottom:1px solid var(--surface2);display:flex;align-items:center;gap:10px;background:#030918;flex-shrink:0">
+    <button onclick="closeFull()" style="background:var(--surface2);border:none;color:var(--muted);border-radius:8px;padding:6px 11px;font-size:12px;cursor:pointer;font-family:inherit">← رجوع</button>
+    <span style="font-size:11px;font-weight:700;color:var(--text);flex:1;text-align:center" id="full-title">مباراة حية</span>
+    <span class="badge bwon" id="full-status">جارية</span>
+  </div>
+  <div id="full-body" style="flex:1;overflow-y:auto;padding:0"></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   XURA TOURNAMENT ENGINE — Complete Implementation
+   10 Modules:
+   1  Data Ingestion & Validation
+   2  Physical Performance Scoring (PPS)
+   3  Team Clustering (Pots A/B/C)
+   4  Group Generation (Seeded + Constraint)
+   5  Match Generation (Swiss Pairing)
+   6  Match Rule Engine (Rotation + Substitution)
+   7  Scoring Engine (Win Rate + Capped Diff + Ratio)
+   8  Re-seeding Engine
+   9  Global Ranking (Tie-break rules)
+   10 Final Phase (No elimination, classification only)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── ID counters ─── */
+let _TID=1,_PID=1,_MID=1
+
+/* ─── Global State ─── */
+const T={
+  phase:'setup',
+  round:0,
+  teams:[],
+  matches:[],
+  groups:{},         // round → [group]
+  liveMatch:null,    // active live match state
+  aiHistory:[],
+  repTab:'teams',
+}
+let vRound=1
+let pfIdx=0
+
+/* ════════════════════════════════════
+   DEMO DATA — 8 فرق · 6 لاعبين لكل
+   ════════════════════════════════════ */
+const DEMO=[
+  {name:'الزمالك',color:'#5eead4',players:[
+    {n:'أحمد سامي',ag:12,h:149,r:163,j:39},{n:'علي حسن',ag:11,h:143,r:157,j:35},
+    {n:'كريم طه',ag:12,h:151,r:166,j:41},{n:'يوسف ماهر',ag:10,h:135,r:148,j:30},
+    {n:'عمر ناصر',ag:11,h:140,r:154,j:33},{n:'زياد أحمد',ag:9,h:128,r:141,j:25}]},
+  {name:'الأهلي',color:'#f87171',players:[
+    {n:'محمد خالد',ag:12,h:153,r:168,j:43},{n:'حسن عمر',ag:11,h:145,r:159,j:38},
+    {n:'مصطفى رمضان',ag:12,h:150,r:165,j:40},{n:'عبدالله جلال',ag:10,h:134,r:147,j:29},
+    {n:'إسلام وائل',ag:11,h:140,r:154,j:33},{n:'ياسر بكر',ag:9,h:127,r:140,j:23}]},
+  {name:'سموحة',color:'#60a5fa',players:[
+    {n:'ماهر سعيد',ag:12,h:146,r:160,j:37},{n:'نور حسام',ag:11,h:139,r:153,j:32},
+    {n:'محمد عاطف',ag:12,h:148,r:162,j:38},{n:'سامي لطفي',ag:10,h:132,r:145,j:27},
+    {n:'علاء مجدي',ag:11,h:138,r:152,j:31},{n:'رامي أشرف',ag:9,h:126,r:139,j:22}]},
+  {name:'الاتحاد',color:'#a78bfa',players:[
+    {n:'طارق فتحي',ag:12,h:154,r:169,j:44},{n:'خالد نبيل',ag:11,h:147,r:161,j:39},
+    {n:'وليد شريف',ag:12,h:152,r:167,j:42},{n:'أيمن كمال',ag:10,h:137,r:150,j:31},
+    {n:'حمزة صلاح',ag:11,h:142,r:156,j:35},{n:'منصور ياسر',ag:9,h:130,r:143,j:27}]},
+  {name:'حرس الحدود',color:'#4ade80',players:[
+    {n:'عمرو صادق',ag:12,h:145,r:159,j:36},{n:'كريم فاضل',ag:11,h:138,r:152,j:31},
+    {n:'إيهاب رضا',ag:12,h:147,r:161,j:38},{n:'محمد حاتم',ag:10,h:131,r:144,j:26},
+    {n:'ناصر وليد',ag:11,h:137,r:151,j:30},{n:'باسل رامي',ag:9,h:125,r:138,j:21}]},
+  {name:'المصري',color:'#fb923c',players:[
+    {n:'جمال سامح',ag:12,h:150,r:164,j:40},{n:'حمدي لطفي',ag:11,h:144,r:158,j:37},
+    {n:'تامر صبري',ag:12,h:148,r:162,j:38},{n:'مازن نادر',ag:10,h:133,r:146,j:28},
+    {n:'بلال زكريا',ag:11,h:139,r:153,j:32},{n:'أحمد ثابت',ag:9,h:128,r:141,j:24}]},
+  {name:'الإسماعيلي',color:'#facc15',players:[
+    {n:'علاء عبده',ag:12,h:147,r:161,j:37},{n:'مدحت جاد',ag:11,h:141,r:155,j:34},
+    {n:'سيد مصطفى',ag:12,h:149,r:163,j:39},{n:'شعبان يوسف',ag:10,h:135,r:148,j:29},
+    {n:'إبراهيم وائل',ag:11,h:140,r:154,j:33},{n:'ريان سمير',ag:9,h:130,r:143,j:26}]},
+  {name:'بتروجيت',color:'#f472b6',players:[
+    {n:'نضال أمين',ag:12,h:151,r:165,j:41},{n:'هيثم رمضان',ag:11,h:145,r:159,j:37},
+    {n:'جابر منصور',ag:12,h:153,r:167,j:42},{n:'أنس كريم',ag:10,h:136,r:149,j:30},
+    {n:'أمجد فريد',ag:11,h:141,r:155,j:34},{n:'سلمى حسن',ag:9,h:128,r:141,j:25}]},
+]
+
+function loadDemo(){
+  T.teams=[];_TID=1;_PID=1
+  DEMO.forEach(d=>{
+    T.teams.push(mkTeam(d.name,d.color,d.players.map(p=>({
+      id:_PID++,name:p.n,age:p.ag,height:p.h,reach:p.r,jump:p.j,pps:0,
+      minsPlayed:0,rotations:0,setsPlayed:0
+    }))))
+  })
+  calcAllPPS(); assignPots(); renderSetup()
+  toast('✓ تم تحميل 8 فرق (48 لاعب)')
+}
+
+function mkTeam(name,color,players=[]){
+  return{id:_TID++,name,color,pot:null,pps:0,score:0,
+    stats:{played:0,wins:0,ptsFor:0,ptsAgainst:0},players}
+}
+
+/* ════════════════════════════════
+   MODULE 1 — DATA VALIDATION
+   ════════════════════════════════ */
+function validatePlayer(p){
+  const errs=[]
+  if(!p.name||p.name.length<2) errs.push('الاسم قصير')
+  if(p.age<9||p.age>12) errs.push('العمر خارج النطاق 9–12')
+  if(p.height<110||p.height>200) errs.push('الطول غير واقعي')
+  if(p.reach<120||p.reach>220) errs.push('ارتفاع المناولة غير واقعي')
+  if(p.jump<10||p.jump>80)   errs.push('الوثب غير واقعي')
+  return errs
+}
+
+/* ════════════════════════════════
+   MODULE 2 — PPS CALCULATION
+   ════════════════════════════════ */
+function calcAllPPS(){
+  const byAge={9:[],10:[],11:[],12:[]}
+  T.teams.forEach(tm=>tm.players.forEach(p=>{if(byAge[p.age])byAge[p.age].push(p)}))
+  ;[9,10,11,12].forEach(age=>{
+    const G=byAge[age]; if(!G.length)return
+    const hA=G.map(p=>p.height),rA=G.map(p=>p.reach),jA=G.map(p=>p.jump)
+    const norm=(v,arr)=>{const mn=Math.min(...arr),mx=Math.max(...arr);return mx>mn?(v-mn)/(mx-mn):.5}
+    G.forEach(p=>{p.pps=0.4*norm(p.height,hA)+0.3*norm(p.reach,rA)+0.3*norm(p.jump,jA)})
+  })
+  T.teams.forEach(tm=>{
+    const s=[...tm.players].sort((a,b)=>b.pps-a.pps).map(p=>p.pps)
+    const avg=s.reduce((a,v)=>a+v,0)/(s.length||1)
+    const top3=s.slice(0,3).reduce((a,v)=>a+v,0)/Math.min(3,s.length||1)
+    tm.pps=0.7*avg+0.3*top3
+  })
+}
+
+/* ════════════════════════════════
+   MODULE 3 — CLUSTERING (POTS)
+   ════════════════════════════════ */
+function assignPots(){
+  const sorted=[...T.teams].sort((a,b)=>b.pps-a.pps)
+  const n=sorted.length
+  sorted.forEach((tm,i)=>{
+    const r=i/n
+    tm.pot=r<0.3?'A':r<0.7?'B':'C'
+  })
+}
+
+/* ════════════════════════════════
+   MODULE 4 — GROUP GENERATION
+   Constraint: each group has ≥1 from each pot
+   ════════════════════════════════ */
+const GL=['أ','ب','ج','د','هـ','و','ز','ح','ط','ي']
+function buildGroups(round){
+  const tms=[...T.teams]
+  const num=Math.max(1,Math.ceil(tms.length/4))
+  const G=Array.from({length:num},(_,i)=>({
+    id:i+1,label:`مجموعة ${GL[i]||i+1}`,teams:[],round
+  }))
+  if(round===1){
+    // Seeded: distribute pot A, B, C evenly
+    const pA=shuffle(tms.filter(t=>t.pot==='A'))
+    const pB=shuffle(tms.filter(t=>t.pot==='B'))
+    const pC=shuffle(tms.filter(t=>t.pot==='C'))
+    ;[pA,pB,pC].forEach(pot=>pot.forEach((tm,i)=>G[i%num].teams.push(tm)))
+  } else {
+    // Re-seed: rank by score, snake-distribute (1→n→1→n)
+    const ranked=tieSort(tms)
+    ranked.forEach((tm,i)=>{
+      const col=i%num
+      G[col].teams.push(tm)
+    })
+  }
+  return G
+}
+
+/* ════════════════════════════════
+   MODULE 5 — SWISS PAIRING ENGINE
+   Avoids rematches, balances opponent strength
+   Each team max 2 matches per round
+   ════════════════════════════════ */
+function swissPairs(groups){
+  const allMatches=[]
+  const played=new Set(T.matches.map(m=>`${Math.min(m.homeId,m.awayId)}_${Math.max(m.homeId,m.awayId)}`))
+
+  groups.forEach(grp=>{
+    const tms=[...grp.teams].sort((a,b)=>(b.score||0)-(a.score||0))
+    const cnt={};tms.forEach(t=>cnt[t.id]=0)
+    const pairs=[]
+    const used=new Set()
+
+    // Try to pair adjacent teams (Swiss logic) avoiding rematches
+    for(let i=0;i<tms.length;i++){
+      if(used.has(tms[i].id)) continue
+      for(let j=i+1;j<tms.length;j++){
+        if(used.has(tms[j].id)) continue
+        if(cnt[tms[i].id]>=2||cnt[tms[j].id]>=2) continue
+        const key=`${Math.min(tms[i].id,tms[j].id)}_${Math.max(tms[i].id,tms[j].id)}`
+        if(!played.has(key)){
+          pairs.push([tms[i],tms[j]])
+          played.add(key)
+          cnt[tms[i].id]++; cnt[tms[j].id]++
+          used.add(tms[i].id); used.add(tms[j].id)
+          break
+        }
+      }
+    }
+    // Fallback: allow rematches if needed
+    for(let i=0;i<tms.length;i++){
+      if(cnt[tms[i].id]>0) continue
+      for(let j=0;j<tms.length;j++){
+        if(i===j||cnt[tms[j].id]>=2) continue
+        const key=`${Math.min(tms[i].id,tms[j].id)}_${Math.max(tms[i].id,tms[j].id)}`
+        if(!used.has(tms[i].id)||cnt[tms[i].id]<2){
+          pairs.push([tms[i],tms[j]])
+          cnt[tms[i].id]++; cnt[tms[j].id]++
+          break
+        }
+      }
+    }
+    pairs.forEach(([a,b])=>{
+      allMatches.push({
+        id:_MID++,round:T.round,
+        groupId:grp.id,groupLabel:grp.label,
+        homeId:a.id,homeName:a.name,homeColor:a.color,
+        awayId:b.id,awayName:b.name,awayColor:b.color,
+        homeScore:null,awayScore:null,status:'scheduled',
+        // Rotation state per side
+        homeLineup:[...a.players.map(p=>p.id)],
+        awayLineup:[...b.players.map(p=>p.id)],
+        homePosIdx:0,awayPosIdx:0,
+        homeSubCount:0,awaySubCount:0,
+        events:[],
+        court:Math.ceil(allMatches.length/2)+1,
+        time:`${9+Math.floor(allMatches.length/3)}:${(allMatches.length%3)*20===0?'00':allMatches.length%3*20}`
+      })
+    })
+  })
+  return allMatches
+}
+
+/* ════════════════════════════════
+   MODULE 6 — MATCH RULE ENGINE
+   Rotation after every point
+   Auto-substitution at serve position
+   Ensures ALL players participate
+   ════════════════════════════════ */
+function initMatchEngine(matchId){
+  const m=T.matches.find(x=>x.id===matchId)
+  if(!m)return null
+  const hTm=T.teams.find(t=>t.id===m.homeId)
+  const aTm=T.teams.find(t=>t.id===m.awayId)
+  // Build lineup queues (6 on court, rest on bench)
+  const buildQueue=(team)=>{
+    const players=[...team.players]
+    return{
+      onCourt:players.slice(0,6).map((p,i)=>({...p,pos:i+1})),
+      bench:players.slice(6),
+      servePos:0, // index 0 = pos 1 (server)
+      subLog:[]
+    }
+  }
+  return{
+    matchId,
+    homeTeam:hTm,awayTeam:aTm,
+    homeQ:buildQueue(hTm),awayQ:buildQueue(aTm),
+    homeScore:m.homeScore||0,awayScore:m.awayScore||0,
+    setNum:1,hSets:0,aSets:0,
+    setLimit:25,serving:'home',
+    started:Date.now(),events:[],done:false
+  }
+}
+
+function rotateTeam(Q){
+  // After each point: rotate positions (1→2→3→4→5→6→1)
+  // Position 1 is the serve position
+  const court=Q.onCourt
+  const first=court.shift()
+  court.push(first)
+  court.forEach((p,i)=>p.pos=i+1)
+  // Auto-substitution: when a player reaches position 1 and has served enough
+  // bring in bench player if available
+  Q.servePos=(Q.servePos+1)%6
+  if(Q.bench.length>0){
+    const serverIdx=Q.onCourt.findIndex(p=>p.pos===1)
+    if(serverIdx!==-1){
+      // Check if this player has served before in this match
+      const server=Q.onCourt[serverIdx]
+      const alreadyServed=Q.subLog.filter(s=>s.outId===server.id).length
+      if(!alreadyServed&&Q.bench.length>0){
+        // Keep player, let them serve once
+      } else if(Q.bench.length>0){
+        // Substitute: bring bench player in
+        const incoming=Q.bench.shift()
+        incoming.pos=1
+        Q.subLog.push({outId:server.id,inId:incoming.id,time:Date.now()})
+        Q.bench.push(server)
+        Q.onCourt[serverIdx]=incoming
+        return{subbed:true,out:server.name,in:incoming.name}
+      }
+    }
+  }
+  return{subbed:false}
+}
+
+function addMatchPoint(state,side){
+  if(state.done)return
+  const limit=state.setNum===5?15:25
+  if(side==='home')state.homeScore++;else state.awayScore++;
+  // Rotate both teams
+  const hRes=rotateTeam(state.homeQ)
+  const aRes=rotateTeam(state.awayQ)
+  state.events.push({
+    t:Date.now(),side,hs:state.homeScore,as:state.awayScore,
+    hSub:hRes.subbed?`${hRes.out}←${hRes.in}`:null,
+    aSub:aRes.subbed?`${aRes.out}←${aRes.in}`:null
+  })
+  // Check set win
+  const diff=Math.abs(state.homeScore-state.awayScore)
+  if(Math.max(state.homeScore,state.awayScore)>=limit&&diff>=2){
+    const sw=state.homeScore>state.awayScore?'home':'away'
+    if(sw==='home')state.hSets++;else state.aSets++;
+    if(state.hSets===3||state.aSets===3||state.setNum===5){
+      state.done=true
+    } else {
+      state.setNum++
+      state.homeScore=0; state.awayScore=0
+    }
+  }
+  return state
+}
+
+function finalizeLiveMatch(state){
+  const m=T.matches.find(x=>x.id===state.matchId)
+  if(!m)return
+  m.homeScore=state.hSets
+  m.awayScore=state.aSets
+  m.status='done'
+  // Update player participation
+  ;[state.homeTeam,state.awayTeam].forEach((tm,si)=>{
+    const Q=si===0?state.homeQ:state.awayQ
+    const onCourt=Q.onCourt.map(p=>p.id)
+    const subbed=Q.subLog.map(s=>s.inId)
+    const all=[...new Set([...onCourt,...subbed])]
+    tm.players.forEach(p=>{
+      if(all.includes(p.id)){
+        p.setsPlayed=(p.setsPlayed||0)+state.setNum
+        p.rotations=(p.rotations||0)+Math.floor((state.events.length)/6)
+      }
+    })
+  })
+  calcScores(); T.liveMatch=null
+  toast(`✓ انتهت: ${m.homeName} ${m.homeScore} - ${m.awayScore} ${m.awayName}`)
+}
+
+/* ════════════════════════════════
+   MODULE 7 — SCORING ENGINE
+   Win Rate + Capped Diff + Ratio
+   ════════════════════════════════ */
+function calcScores(){
+  T.teams.forEach(tm=>{
+    const ms=T.matches.filter(m=>m.status==='done'&&(m.homeId===tm.id||m.awayId===tm.id))
+    let wins=0,pF=0,pA=0
+    ms.forEach(m=>{
+      const mine=m.homeId===tm.id?m.homeScore:m.awayScore
+      const theirs=m.homeId===tm.id?m.awayScore:m.homeScore
+      if(mine>theirs)wins++
+      pF+=mine; pA+=theirs
+    })
+    const played=ms.length
+    const winRate=played?wins/played:0
+    // Cap: set 25→max diff 10, set 15→max diff 6
+    const capPerSet=10
+    const maxCap=capPerSet*Math.max(1,played)
+    const diff=Math.max(-maxCap,Math.min(maxCap,pF-pA))
+    const normDiff=(diff/maxCap+1)/2
+    const total=pF+pA
+    const ratio=total?pF/total:.5
+    tm.stats={played,wins,ptsFor:pF,ptsAgainst:pA,winRate,diff:pF-pA}
+    tm.score=0.5*winRate+0.3*normDiff+0.2*ratio
+  })
+}
+
+/* ════════════════════════════════
+   MODULE 8 — RE-SEEDING ENGINE
+   After each round: rank → re-cluster pots
+   Top vs Top, Mid vs Mid, Low vs Low
+   ════════════════════════════════ */
+function doReseed(){
+  calcScores(); assignPots()
+  toast('🔀 تم إعادة توزيع الأصص بحسب الأداء الفعلي')
+  renderDashboard()
+}
+
+/* ════════════════════════════════
+   MODULE 9 — GLOBAL RANKING + TIE-BREAK
+   1. Score  2. H2H  3. Pts conceded  4. Ratio
+   ════════════════════════════════ */
+function tieSort(teams){
+  return [...teams].sort((a,b)=>{
+    const sd=(b.score||0)-(a.score||0); if(Math.abs(sd)>0.0001)return sd
+    // 1. Head-to-head
+    const h2h=T.matches.find(m=>m.status==='done'&&
+      ((m.homeId===a.id&&m.awayId===b.id)||(m.homeId===b.id&&m.awayId===a.id)))
+    if(h2h){
+      const aW=(h2h.homeId===a.id&&h2h.homeScore>h2h.awayScore)||(h2h.awayId===a.id&&h2h.awayScore>h2h.homeScore)
+      return aW?-1:1
+    }
+    // 2. Lower points conceded
+    const pc=(a.stats?.ptsAgainst||0)-(b.stats?.ptsAgainst||0); if(pc!==0)return pc
+    // 3. Higher point ratio
+    const ta=(a.stats?.ptsFor||0)+(a.stats?.ptsAgainst||0)
+    const tb=(b.stats?.ptsFor||0)+(b.stats?.ptsAgainst||0)
+    const ra=ta?(a.stats?.ptsFor||0)/ta:.5
+    const rb=tb?(b.stats?.ptsFor||0)/tb:.5
+    return rb-ra
+  })
+}
+
+/* ════════════════════════════════
+   MODULE 10 — FINAL PHASE
+   No elimination · No champion
+   Classification matches only
+   Maximize playtime
+   ════════════════════════════════ */
+function startTournament(){
+  if(T.teams.length<2){toast('أضف فريقين على الأقل');return}
+  calcAllPPS(); assignPots()
+  T.phase='running'; T.round=1; vRound=1
+  const groups=buildGroups(1)
+  T.groups[1]=groups
+  T.matches.push(...swissPairs(groups))
+  updateBadge(); goto('dashboard')
+  toast('🚀 انطلقت البطولة! الجولة 1')
+}
+
+function generateNextRound(){
+  if(T.phase!=='running'){toast('ابدأ البطولة أولاً');return}
+  const pending=T.matches.filter(m=>m.round===T.round&&m.status!=='done')
+  if(pending.length>0){
+    if(!confirm(`لا تزال هناك ${pending.length} مباريات غير منتهية. متابعة؟`))return
+  }
+  calcScores(); doReseed()
+  T.round++; vRound=T.round
+  const groups=buildGroups(T.round)
+  T.groups[T.round]=groups
+  const newMs=swissPairs(groups)
+  T.matches.push(...newMs)
+  updateBadge(); renderDashboard(); renderSchedule()
+  toast(`✨ تم توليد الجولة ${T.round} (${newMs.length} مباريات)`)
+}
+
+/* ════════════════════════════════
+   NAVIGATION
+   ════════════════════════════════ */
+function goto(s){
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'))
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'))
+  document.getElementById(`scr-${s}`).classList.add('active')
+  const nb=document.getElementById(`nav-${s}`)
+  if(nb)nb.classList.add('active')
+  if(s==='setup')    renderSetup()
+  if(s==='dashboard')renderDashboard()
+  if(s==='schedule') renderSchedule()
+  if(s==='ranking')  renderRanking()
+  if(s==='rotation') renderRotation()
+  if(s==='reports')  renderReports()
+  if(s==='ai')       renderAI()
+}
+
+/* ════════════════════════════════
+   RENDER — SETUP
+   ════════════════════════════════ */
+function renderSetup(){
+  const total=T.teams.reduce((s,t)=>s+t.players.length,0)
+  const done=T.matches.filter(m=>m.status==='done').length
+  document.getElementById('st-t').textContent=T.teams.length
+  document.getElementById('st-p').textContent=total
+  document.getElementById('st-m').textContent=T.matches.length
+  document.getElementById('st-d').textContent=done
+  const el=document.getElementById('setup-list')
+  el.innerHTML=T.teams.map(tm=>`
+    <div class="card" style="border-color:${tm.color}35;margin-bottom:7px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="width:9px;height:9px;border-radius:50%;background:${tm.color};flex-shrink:0"></div>
+          <span style="font-weight:700;font-size:12.5px">${tm.name}</span>
+          ${tm.pot?`<span class="badge b${tm.pot.toLowerCase()}">صيص ${tm.pot}</span>`:''}
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span style="font-size:10px;color:var(--faint)">${tm.players.length} لاعب</span>
+          <button class="btn btn-ghost btn-sm" onclick="openModal('team:${tm.id}')">تفاصيل</button>
+        </div>
+      </div>
+      <div class="pb" style="margin-top:8px">
+        <span style="color:var(--faint);font-size:9.5px;width:28px">PPS</span>
+        <div class="pt"><div class="pf" style="width:${(tm.pps||0)*100}%;background:${tm.color}"></div></div>
+        <span style="color:${tm.color};font-size:9.5px;min-width:30px;text-align:left">${((tm.pps||0)*100).toFixed(0)}%</span>
+      </div>
+    </div>
+  `).join('')
+}
+
+/* ════════════════════════════════
+   RENDER — DASHBOARD
+   ════════════════════════════════ */
+function renderDashboard(){
+  // Pots
+  const P={A:[],B:[],C:[]}
+  T.teams.forEach(t=>{if(t.pot)P[t.pot].push(t)})
+  document.getElementById('pots-area').innerHTML=['A','B','C'].map(p=>`
+    <div class="card" style="margin-bottom:6px;padding:9px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+        <span class="badge b${p.toLowerCase()}">صيص ${p}</span>
+        <span style="font-size:9.5px;color:var(--faint)">${P[p].length} فريق | PPS أعلى: ${P[p].length?((Math.max(...P[p].map(t=>t.pps||0)))*100).toFixed(0)+'%':'—'}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${P[p].map(t=>`<span style="font-size:10.5px;padding:3px 8px;background:${t.color}15;border-radius:6px;color:${t.color};border:1px solid ${t.color}30">${t.name}</span>`).join('')}
+      </div>
+    </div>
+  `).join('')
+
+  // Current groups
+  const curGrps=T.groups[T.round]||[]
+  document.getElementById('groups-area').innerHTML=curGrps.length
+    ?curGrps.map(grp=>`
+      <div class="gb">
+        <div class="gh">
+          <span style="font-size:12px;font-weight:700">${grp.label}</span>
+          <span style="font-size:9.5px;color:var(--faint)">${grp.teams.length} فرق | ${T.matches.filter(m=>m.round===T.round&&m.groupId===grp.id).length} مباريات</span>
+        </div>
+        ${grp.teams.map(t=>`
+          <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--surface2)">
+            <div style="width:6px;height:6px;border-radius:50%;background:${t.color};flex-shrink:0"></div>
+            <span style="font-size:11.5px;flex:1">${t.name}</span>
+            <span class="badge b${(t.pot||'b').toLowerCase()}" style="font-size:9px">صيص ${t.pot||'؟'}</span>
+            <span style="font-size:9.5px;color:var(--faint)">${t.stats?.wins||0}ف/${t.stats?.played||0}م</span>
+            <span style="font-size:9.5px;color:var(--teal)">PPS:${((t.pps||0)*100).toFixed(0)}%</span>
+          </div>
+        `).join('')}
+      </div>
+    `).join('')
+    :'<div style="color:var(--faint);font-size:12px;text-align:center;padding:28px">ابدأ البطولة أولاً</div>'
+
+  // Summary
+  const done=T.matches.filter(m=>m.status==='done').length
+  const total=T.matches.length
+  const pct=total?Math.round(done/total*100):0
+  document.getElementById('summary-area').innerHTML=`
+    <div class="card" style="padding:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:11px">
+        <span style="color:var(--faint)">التقدم الكلي</span>
+        <span style="color:var(--teal);font-weight:700">${done}/${total} مباراة (${pct}%)</span>
+      </div>
+      <div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:var(--teal-d);border-radius:2px;transition:width .5s"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+      <div class="sb">
+        <div class="sn" style="color:var(--amber);font-size:18px">${T.round||0}</div>
+        <div class="sl">الجولة الحالية</div>
+      </div>
+      <div class="sb">
+        <div class="sn" style="color:var(--purple);font-size:18px">${T.teams.reduce((s,t)=>s+t.players.length,0)}</div>
+        <div class="sl">إجمالي اللاعبين</div>
+      </div>
+    </div>
+  `
+}
+
+/* ════════════════════════════════
+   RENDER — SCHEDULE
+   ════════════════════════════════ */
+function renderSchedule(){
+  const rounds=[...new Set(T.matches.map(m=>m.round))].sort((a,b)=>a-b)
+  document.getElementById('round-tabs').innerHTML=rounds.map(r=>`
+    <button class="itab ${r===vRound?'active':''}" onclick="setVRound(${r})">الجولة ${r}</button>
+  `).join('') || '<div style="color:var(--faint);font-size:11px">لا توجد جولات بعد</div>'
+
+  const ms=T.matches.filter(m=>m.round===vRound)
+  if(!ms.length){
+    document.getElementById('sched-list').innerHTML='<div style="color:var(--faint);font-size:12px;text-align:center;padding:40px">لا توجد مباريات</div>'
+    return
+  }
+  const byG={}
+  ms.forEach(m=>{if(!byG[m.groupLabel])byG[m.groupLabel]=[]; byG[m.groupLabel].push(m)})
+  document.getElementById('sched-list').innerHTML=Object.entries(byG).map(([gl,matches])=>`
+    <div style="margin-bottom:13px">
+      <div class="sec-title" style="margin-bottom:7px">${gl}</div>
+      ${matches.map(m=>`
+        <div class="mc ${m.status}" onclick="openMatchAction(${m.id})">
+          <div class="mt">
+            <div style="flex:1">
+              <div class="mtn" style="color:${m.homeColor}">${m.homeName}</div>
+            </div>
+            <div style="text-align:center">
+              <div class="msd" style="color:${m.status==='live'?'var(--red)':m.status==='done'?'var(--amber)':'var(--faint)'}">${m.status==='done'?`${m.homeScore}:${m.awayScore}`:m.status==='live'?'🔴':'vs'}</div>
+            </div>
+            <div style="flex:1;text-align:left">
+              <div class="mtn" style="color:${m.awayColor}">${m.awayName}</div>
+            </div>
+          </div>
+          <div class="mm">
+            ${m.status==='done'
+              ?`<span class="badge bwon" style="font-size:8.5px">✓ منتهية</span>
+                <span>الفائز: ${m.homeScore>m.awayScore?m.homeName:m.awayName}</span>
+                <span>ملعب ${m.court}</span>`
+              :m.status==='live'
+              ?`<span class="badge blost" style="font-size:8.5px">● مباشر</span><span>ملعب ${m.court}</span>`
+              :`<span style="color:var(--amber)">⏳ اضغط للبدء أو إدخال النتيجة</span><span>ملعب ${m.court}</span><span>${m.time}</span>`
+            }
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('')
+}
+
+function setVRound(r){vRound=r;renderSchedule()}
+
+function openMatchAction(id){
+  const m=T.matches.find(x=>x.id===id)
+  if(!m)return
+  openModal('match:'+id)
+}
+
+/* ════════════════════════════════
+   RENDER — RANKING
+   ════════════════════════════════ */
+function renderRanking(){
+  calcScores()
+  const sorted=tieSort(T.teams)
+  document.getElementById('rank-list').innerHTML=sorted.map((tm,i)=>{
+    const nc=i===0?'gold':i===1?'silver':i===2?'bronze':''
+    const s=tm.stats||{}
+    const diff=(s.ptsFor||0)-(s.ptsAgainst||0)
+    return `<div class="rr">
+      <div class="rn ${nc}">${i+1}</div>
+      <div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${tm.color};flex-shrink:0"></div>
+          <span style="font-size:12px;font-weight:700">${tm.name}</span>
+          ${tm.pot?`<span class="badge b${tm.pot.toLowerCase()}" style="font-size:8.5px">صيص ${tm.pot}</span>`:''}
+        </div>
+        <div style="font-size:9.5px;color:var(--faint);margin-top:2px;display:flex;gap:7px;flex-wrap:wrap">
+          <span>${s.played||0}م</span>
+          <span style="color:var(--green)">${s.wins||0}ف</span>
+          <span style="color:var(--red)">${(s.played||0)-(s.wins||0)}خ</span>
+          <span style="color:${diff>=0?'var(--green)':'var(--red)'}">${diff>=0?'+':''}${diff}</span>
+          <span>PPS:${((tm.pps||0)*100).toFixed(0)}%</span>
+        </div>
+      </div>
+      <div>
+        <div class="pb">
+          <div class="pt" style="width:48px"><div class="pf" style="width:${(tm.pps||0)*100}%;background:${tm.color}"></div></div>
+        </div>
+        <div style="font-size:8.5px;color:var(--faint);text-align:center;margin-top:2px">${((tm.score||0)*100).toFixed(1)}نق</div>
+      </div>
+      <div class="rp" style="color:${tm.color}">${((tm.score||0)*100).toFixed(1)}</div>
+    </div>`
+  }).join('')
+}
+
+/* ════════════════════════════════
+   RENDER — ROTATION / PARTICIPATION
+   ════════════════════════════════ */
+function renderRotation(){
+  const el=document.getElementById('part-area')
+  if(!T.teams.length){
+    el.innerHTML='<div style="color:var(--faint);font-size:12px;text-align:center;padding:30px">لا توجد بيانات بعد</div>'
+    return
+  }
+  // Player participation stats
+  const allPlayers=T.teams.flatMap(tm=>tm.players.map(p=>({...p,teamName:tm.name,teamColor:tm.color})))
+  const maxRot=Math.max(1,...allPlayers.map(p=>p.rotations||0))
+
+  el.innerHTML=`
+    <div class="sec-title">معدل المشاركة لكل لاعب</div>
+    ${T.teams.map(tm=>`
+      <div class="card" style="border-color:${tm.color}30;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--surface2)">
+          <div style="width:9px;height:9px;border-radius:50%;background:${tm.color};flex-shrink:0"></div>
+          <span style="font-weight:800;color:${tm.color};font-size:12.5px">${tm.name}</span>
+          <span style="font-size:9.5px;color:var(--faint);margin-right:auto">مجموع الدورات: ${tm.players.reduce((s,p)=>s+(p.rotations||0),0)}</span>
+        </div>
+        ${[...tm.players].sort((a,b)=>(b.rotations||0)-(a.rotations||0)).map(p=>`
+          <div class="plog-row">
+            <div style="min-width:90px;font-weight:600;font-size:11px">${p.name}</div>
+            <div style="font-size:9.5px;color:var(--faint);min-width:28px">${p.age}ع</div>
+            <div class="plog-bar"><div class="plog-fill" style="width:${maxRot?((p.rotations||0)/maxRot*100):0}%;background:${tm.color}"></div></div>
+            <div style="font-size:9.5px;color:${tm.color};min-width:40px;text-align:left">${p.rotations||0} دورة</div>
+            <div style="font-size:9.5px;color:var(--faint);min-width:30px">${p.setsPlayed||0}ش</div>
+          </div>
+        `).join('')}
+      </div>
+    `).join('')}
+    
+    <div class="sec-title" style="margin-top:10px">سجل الاستبدالات</div>
+    ${T.matches.filter(m=>m.status==='done'||m.status==='live').map(m=>{
+      const evs=(m.events||[]).filter(e=>e.hSub||e.aSub)
+      if(!evs.length)return ''
+      return `<div class="card-sm">
+        <div style="font-size:10.5px;font-weight:700;color:var(--text2);margin-bottom:5px">${m.homeName} vs ${m.awayName}</div>
+        ${evs.map(e=>`
+          <div style="font-size:9.5px;color:var(--faint);padding:2px 0">
+            ${e.hSub?`🏠 ${e.hSub}`:''} ${e.aSub?`✈ ${e.aSub}`:''}
+          </div>
+        `).join('')}
+      </div>`
+    }).join('')||'<div style="color:var(--faint);font-size:11px;text-align:center;padding:16px">لا توجد استبدالات مسجّلة بعد</div>'}
+  `
+}
+
+/* ════════════════════════════════
+   RENDER — REPORTS
+   ════════════════════════════════ */
+let _repTab='teams'
+function repTab(tab,el){
+  _repTab=tab
+  document.querySelectorAll('#rep-tabs .itab').forEach(b=>b.classList.remove('active'))
+  if(typeof el==='string'){
+    // find button
+    document.querySelectorAll('#rep-tabs .itab').forEach(b=>{
+      if(b.textContent.includes(tab==='teams'?'الفرق':tab==='players'?'اللاعبون':tab==='matches'?'المباريات':'PPS'))
+        b.classList.add('active')
+    })
+  }
+  renderReports()
+}
+
+function renderReports(){
+  calcScores()
+  const el=document.getElementById('rep-body')
+  if(_repTab==='teams'){
+    const sorted=tieSort(T.teams)
+    el.innerHTML=`
+      <table class="tbl">
+        <thead><tr><th>#</th><th>الفريق</th><th>م</th><th>ف</th><th>فارق</th><th>PPS</th><th>النقطة</th></tr></thead>
+        <tbody>${sorted.map((t,i)=>{
+          const s=t.stats||{}
+          return `<tr>
+            <td>${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+            <td><span style="color:${t.color};font-weight:700">${t.name}</span></td>
+            <td>${s.played||0}</td><td>${s.wins||0}</td>
+            <td style="color:${(s.diff||0)>=0?'var(--green)':'var(--red)'}">${s.diff>=0?'+':''}${s.diff||0}</td>
+            <td>${((t.pps||0)*100).toFixed(0)}%</td>
+            <td style="color:var(--teal);font-weight:700">${((t.score||0)*100).toFixed(1)}</td>
+          </tr>`
+        }).join('')}</tbody>
+      </table>
+    `
+  } else if(_repTab==='players'){
+    const all=T.teams.flatMap(tm=>tm.players.map(p=>({...p,tm})))
+      .sort((a,b)=>b.pps-a.pps)
+    el.innerHTML=`
+      <table class="tbl">
+        <thead><tr><th>#</th><th>اللاعب</th><th>الفريق</th><th>سن</th><th>PPS</th><th>دورات</th></tr></thead>
+        <tbody>${all.map((p,i)=>`<tr>
+          <td style="color:var(--faint)">${i+1}</td>
+          <td style="font-weight:600">${p.name}</td>
+          <td><span style="color:${p.tm.color}">${p.tm.name}</span></td>
+          <td>${p.age}</td>
+          <td style="color:var(--teal)">${((p.pps||0)*100).toFixed(0)}%</td>
+          <td>${p.rotations||0}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    `
+  } else if(_repTab==='matches'){
+    el.innerHTML=T.matches.map(m=>`
+      <div class="card-sm" style="margin-bottom:5px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11.5px">
+          <span style="color:${m.homeColor};font-weight:700">${m.homeName}</span>
+          <span style="color:var(--amber);font-weight:900;font-variant-numeric:tabular-nums">${m.status==='done'?`${m.homeScore}:${m.awayScore}`:'—:—'}</span>
+          <span style="color:${m.awayColor};font-weight:700">${m.awayName}</span>
+          <span class="badge ${m.status==='done'?'bwon':m.status==='live'?'blost':'bdraw'}" style="font-size:8.5px;margin-right:auto">${m.status==='done'?'✓':m.status==='live'?'●':'⏳'}</span>
+        </div>
+        <div style="font-size:9.5px;color:var(--faint);margin-top:3px">ج${m.round} · ${m.groupLabel} · ملعب ${m.court} · ${m.time}</div>
+      </div>
+    `).join('') || '<div style="color:var(--faint);font-size:11px;text-align:center;padding:20px">لا توجد مباريات</div>'
+  } else if(_repTab==='pps'){
+    el.innerHTML=`
+      <div class="card" style="margin-bottom:8px;background:#050a14">
+        <div style="font-size:10px;color:var(--faint);line-height:2;margin-bottom:7px">
+          PPS = <span style="color:var(--teal)">40%×الطول</span> + 
+          <span style="color:var(--blue)">30%×ارتفاع المناولة</span> + 
+          <span style="color:var(--amber)">30%×الوثب العمودي</span><br>
+          مُعيَّر حسب الفئة العمرية — الإحصاء مقارن داخل نفس السن
+        </div>
+        ${['A','B','C'].map(p=>{
+          const tms=T.teams.filter(t=>t.pot===p)
+          if(!tms.length)return ''
+          const avg=tms.reduce((s,t)=>s+(t.pps||0),0)/tms.length
+          return `<div class="rep-kv"><span class="rep-key">صيص ${p} — متوسط PPS</span><span class="rep-val badge b${p.toLowerCase()}">${(avg*100).toFixed(1)}%</span></div>`
+        }).join('')}
+      </div>
+      ${T.teams.sort((a,b)=>(b.pps||0)-(a.pps||0)).map(tm=>`
+        <div class="card" style="border-color:${tm.color}30;margin-bottom:7px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+            <div style="width:8px;height:8px;border-radius:50%;background:${tm.color};flex-shrink:0"></div>
+            <span style="font-weight:800;color:${tm.color};font-size:12px;flex:1">${tm.name}</span>
+            <span class="badge b${(tm.pot||'b').toLowerCase()}">صيص ${tm.pot||'؟'}</span>
+            <span style="font-size:11px;color:var(--text2)">PPS الفريق: ${((tm.pps||0)*100).toFixed(1)}%</span>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>اللاعب</th><th>سن</th><th>طول</th><th>مناولة</th><th>وثب</th><th>PPS</th></tr></thead>
+            <tbody>
+              ${[...tm.players].sort((a,b)=>b.pps-a.pps).map(p=>`
+                <tr>
+                  <td style="font-weight:600">${p.name}</td>
+                  <td>${p.age}</td><td>${p.height}</td><td>${p.reach}</td><td>${p.jump}</td>
+                  <td>
+                    <div class="pb">
+                      <div class="pt" style="width:36px"><div class="pf" style="width:${(p.pps||0)*100}%;background:${tm.color}"></div></div>
+                      <span style="color:${tm.color};font-size:9.5px">${((p.pps||0)*100).toFixed(0)}%</span>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `).join('')}
+    `
+  }
+}
+
+function printReport(){
+  // Build printable content
+  calcScores()
+  const sorted=tieSort(T.teams)
+  const win=window.open('','_blank')
+  win.document.write(`<html dir="rtl"><head><meta charset="UTF-8">
+  <title>XURA Tournament Report</title>
+  <style>body{font-family:'Noto Sans Arabic',Arial,sans-serif;padding:20px;direction:rtl}
+  table{width:100%;border-collapse:collapse;margin:15px 0}th,td{border:1px solid #ddd;padding:8px;text-align:right;font-size:12px}
+  th{background:#f0f0f0;font-weight:700}h1{font-size:20px}h2{font-size:14px;color:#0d9488;margin-top:20px}
+  .pts{color:#0d9488;font-weight:700}</style></head><body>
+  <h1>⚡ XURA Tournament Engine — تقرير البطولة</h1>
+  <p>الجولة: ${T.round} | الفرق: ${T.teams.length} | المباريات: ${T.matches.length} | منتهية: ${T.matches.filter(m=>m.status==='done').length}</p>
+  <h2>الترتيب العالمي</h2>
+  <table><thead><tr><th>#</th><th>الفريق</th><th>ع</th><th>ف</th><th>خ</th><th>له</th><th>عليه</th><th>PPS</th><th>النقطة</th></tr></thead>
+  <tbody>${sorted.map((t,i)=>{const s=t.stats||{};return`<tr>
+    <td>${i+1}</td><td><b>${t.name}</b></td>
+    <td>${s.played||0}</td><td>${s.wins||0}</td><td>${(s.played||0)-(s.wins||0)}</td>
+    <td>${s.ptsFor||0}</td><td>${s.ptsAgainst||0}</td>
+    <td>${((t.pps||0)*100).toFixed(0)}%</td>
+    <td class="pts">${((t.score||0)*100).toFixed(1)}</td>
+  </tr>`}).join('')}</tbody></table>
+  <script>window.print()<\/script></body></html>`)
+  win.document.close()
+}
+
+/* ════════════════════════════════
+   AI ENGINE — Claude API
+   ════════════════════════════════ */
+function renderAI(){
+  const el=document.getElementById('ai-chat')
+  if(!T.aiHistory.length){
+    el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--faint);font-size:12px;line-height:2">
+      🤖 مرحباً! أنا المحلل الذكي لبطولة XURA<br>
+      أسألني عن الفرق، الترتيب، التحليلات، التوصيات<br>
+      <span style="font-size:10px;color:var(--surface2)">تشغيل بواسطة Claude AI · يقرأ بيانات البطولة الحية</span>
+    </div>`
+    return
+  }
+  el.innerHTML=T.aiHistory.map(m=>`
+    <div class="ai-msg ${m.role==='user'?'ai-user':'ai-bot'} ${m.loading?'ai-loading':''}">${m.content}</div>
+  `).join('')
+  const box=document.getElementById('ai-box')
+  setTimeout(()=>box.scrollTop=box.scrollHeight,50)
+}
+
+async function sendAI(){
+  const inp=document.getElementById('ai-inp')
+  const msg=inp?.value?.trim(); if(!msg)return
+  inp.value=''
+  await callAI(msg)
+}
+
+async function aiQ(msg){ await callAI(msg) }
+
+async function callAI(userMsg){
+  calcScores()
+  const snap={
+    round:T.round,phase:T.phase,
+    teams:T.teams.length,players:T.teams.reduce((s,t)=>s+t.players.length,0),
+    matchesTotal:T.matches.length,
+    matchesDone:T.matches.filter(m=>m.status==='done').length,
+    pots:{
+      A:T.teams.filter(t=>t.pot==='A').map(t=>({name:t.name,pps:((t.pps||0)*100).toFixed(1)+'%',wins:t.stats?.wins||0})),
+      B:T.teams.filter(t=>t.pot==='B').map(t=>({name:t.name,pps:((t.pps||0)*100).toFixed(1)+'%',wins:t.stats?.wins||0})),
+      C:T.teams.filter(t=>t.pot==='C').map(t=>({name:t.name,pps:((t.pps||0)*100).toFixed(1)+'%',wins:t.stats?.wins||0})),
+    },
+    ranking:tieSort(T.teams).map((t,i)=>({
+      rank:i+1,team:t.name,pot:t.pot,
+      pps:((t.pps||0)*100).toFixed(1)+'%',
+      score:((t.score||0)*100).toFixed(1),
+      played:t.stats?.played||0,wins:t.stats?.wins||0,
+      ptsFor:t.stats?.ptsFor||0,ptsAgainst:t.stats?.ptsAgainst||0
+    })),
+    topPlayers:T.teams.flatMap(tm=>tm.players.map(p=>({name:p.name,team:tm.name,pps:((p.pps||0)*100).toFixed(0)+'%',rotations:p.rotations||0})))
+      .sort((a,b)=>parseFloat(b.pps)-parseFloat(a.pps)).slice(0,8),
+    recentResults:T.matches.filter(m=>m.status==='done').slice(-5).map(m=>
+      `${m.homeName} ${m.homeScore}:${m.awayScore} ${m.awayName}`)
+  }
+
+  T.aiHistory.push({role:'user',content:userMsg})
+  T.aiHistory.push({role:'assistant',content:'⏳ جاري التحليل…',loading:true})
+  renderAI()
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:900,
+        system:`أنت محلل ذكاء اصطناعي متخصص في بطولات كرة الطائرة المصغّرة (أعمار 9-12 سنة).
+نظام البطولة يعتمد:
+- PPS: مؤشر الأداء البدني (الطول 40% + المناولة 30% + الوثب 30%)
+- أصص A/B/C للتوزيع العادل
+- Swiss Pairing لتجنب التكرار
+- لا إقصاء — تصنيف مستمر فقط
+- دوران إلزامي بعد كل نقطة
+
+بيانات البطولة الحية:
+${JSON.stringify(snap,null,2)}
+
+قواعد الإجابة:
+- أجب باللغة العربية فقط
+- استخدم البيانات الفعلية والأرقام الحقيقية
+- كن تحليلياً ومفيداً (250-450 كلمة)
+- استخدم نقاط والرموز لسهولة القراءة
+- قدم توصيات عملية قابلة للتنفيذ`,
+        messages:[{role:'user',content:userMsg}]
+      })
+    })
+    const data=await res.json()
+    const reply=data.content?.find(c=>c.type==='text')?.text||'لم أتمكن من الإجابة حالياً.'
+    T.aiHistory[T.aiHistory.length-1]={role:'assistant',content:reply}
+  }catch(e){
+    T.aiHistory[T.aiHistory.length-1]={role:'assistant',content:'⚠️ فشل الاتصال بالذكاء الاصطناعي. تحقق من الاتصال.'}
+  }
+  renderAI()
+}
+
+/* ════════════════════════════════
+   LIVE MATCH ENGINE (Full Screen)
+   ════════════════════════════════ */
+function openLiveMatch(id){
+  const state=initMatchEngine(id)
+  if(!state){toast('تعذر فتح المباراة');return}
+  T.liveMatch=state
+  const m=T.matches.find(x=>x.id===id)
+  if(m)m.status='live'
+  renderLiveMatch()
+  document.getElementById('full-title').textContent=`${state.homeTeam.name} vs ${state.awayTeam.name}`
+  document.getElementById('full').classList.add('open')
+  renderSchedule()
+}
+
+function closeFull(){
+  document.getElementById('full').classList.remove('open')
+  if(T.liveMatch&&!T.liveMatch.done){
+    const m=T.matches.find(x=>x.id===T.liveMatch.matchId)
+    if(m)m.status='scheduled'
+    T.liveMatch=null
+  }
+  renderSchedule()
+}
+
+function renderLiveMatch(){
+  const state=T.liveMatch
+  if(!state)return
+  const m=T.matches.find(x=>x.id===state.matchId)
+  const fsStat=document.getElementById('full-status')
+  if(fsStat)fsStat.textContent=state.done?'منتهية':'جارية'
+
+  document.getElementById('full-body').innerHTML=`
+    <!-- Set Score -->
+    <div style="background:#030910;padding:12px 14px;border-bottom:1px solid var(--surface2)">
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-bottom:4px">أشواط الفوز</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px">
+        <div style="text-align:center">
+          <div style="font-size:28px;font-weight:900;color:${state.homeTeam.color}">${state.hSets}</div>
+          <div style="font-size:10px;color:${state.homeTeam.color}">${state.homeTeam.name}</div>
+        </div>
+        <div style="font-size:14px;color:var(--faint)">أشواط</div>
+        <div style="text-align:center">
+          <div style="font-size:28px;font-weight:900;color:${state.awayTeam.color}">${state.aSets}</div>
+          <div style="font-size:10px;color:${state.awayTeam.color}">${state.awayTeam.name}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Point Score -->
+    <div style="padding:10px 14px;border-bottom:1px solid var(--surface2)">
+      <div style="text-align:center;font-size:9.5px;color:var(--faint);margin-bottom:2px">الشوط ${state.setNum} من ${state.setNum===5?1:3} — نقاط الشوط</div>
+      <div class="lm-score" style="padding:8px 0">
+        <div style="text-align:center">
+          <div class="lm-sn" style="color:${state.homeTeam.color}">${state.homeScore}</div>
+        </div>
+        <div class="lm-div">:</div>
+        <div style="text-align:center">
+          <div class="lm-sn" style="color:${state.awayTeam.color}">${state.awayScore}</div>
+        </div>
+      </div>
+      <div style="text-align:center;font-size:9.5px;color:var(--amber)">
+        ${state.setNum<5?'25 نقطة للفوز بفارق 2':'15 نقطة للفوز بفارق 2'} |
+        الإرسال: <span style="color:var(--green)">${state.serving==='home'?state.homeTeam.name:state.awayTeam.name}</span>
+      </div>
+    </div>
+
+    <!-- Score Buttons -->
+    ${state.done?`
+      <div style="padding:20px;text-align:center">
+        <div style="font-size:16px;font-weight:900;color:var(--teal);margin-bottom:6px">انتهت المباراة!</div>
+        <div style="font-size:14px;color:var(--faint);margin-bottom:14px">
+          ${state.hSets>state.aSets?state.homeTeam.name:state.awayTeam.name} يفوز ${state.hSets}:${state.aSets}
+        </div>
+        <button class="btn btn-primary btn-full" onclick="finalizeLiveMatch(T.liveMatch);closeFull();renderSchedule();renderRanking()">✓ حفظ وإنهاء</button>
+        <button class="btn btn-ghost btn-full" onclick="closeFull()">إغلاق بدون حفظ</button>
+      </div>
+    `:`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px">
+        <button class="lm-btn" style="background:${state.homeTeam.color}22;border-color:${state.homeTeam.color}55;color:${state.homeTeam.color}"
+          onclick="lmPoint('home')">
+          <div style="font-size:12px;opacity:.7">${state.homeTeam.name}</div>
+          <div style="font-size:24px;font-weight:900">＋ نقطة</div>
+        </button>
+        <button class="lm-btn" style="background:${state.awayTeam.color}22;border-color:${state.awayTeam.color}55;color:${state.awayTeam.color}"
+          onclick="lmPoint('away')">
+          <div style="font-size:12px;opacity:.7">${state.awayTeam.name}</div>
+          <div style="font-size:24px;font-weight:900">＋ نقطة</div>
+        </button>
+      </div>
+      <div style="padding:0 12px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="lmUndo()">↩ تراجع</button>
+        <button class="btn btn-amber btn-sm" onclick="lmEndSet()">إنهاء الشوط ▸</button>
+      </div>
+    `}
+
+    <!-- Rotation Display -->
+    <div style="padding:10px 12px">
+      <div class="sec-title">تشكيل الملعب — الدوران الحالي</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${['home','away'].map(side=>{
+          const Q=side==='home'?state.homeQ:state.awayQ
+          const tm=side==='home'?state.homeTeam:state.awayTeam
+          return `<div>
+            <div style="font-size:10px;font-weight:700;color:${tm.color};margin-bottom:5px;text-align:center">${tm.name}</div>
+            <div class="rot-grid">
+              ${Q.onCourt.map(p=>`
+                <div class="rot-pos ${p.pos===1?'serving':''}">
+                  <div class="rot-pos-num">م${p.pos}${p.pos===1?' 🏐':''}</div>
+                  <div class="rot-pos-name" style="color:${p.pos===1?'var(--amber)':tm.color}">${p.name.split(' ')[0]}</div>
+                  <div class="rot-pos-age">${p.age}ع</div>
+                </div>
+              `).join('')}
+            </div>
+            ${Q.bench.length?`<div style="font-size:9px;color:var(--faint);text-align:center">احتياطي: ${Q.bench.map(p=>p.name.split(' ')[0]).join('، ')}</div>`:''}
+          </div>`
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Last Events -->
+    ${state.events.length?`
+      <div style="padding:0 12px 12px">
+        <div class="sec-title">آخر 5 أحداث</div>
+        ${state.events.slice(-5).reverse().map(e=>`
+          <div style="display:flex;justify-content:space-between;padding:4px 6px;font-size:10px;border-bottom:1px solid #05080f">
+            <span style="color:${e.side==='home'?state.homeTeam.color:state.awayTeam.color};font-weight:700">
+              ${e.side==='home'?state.homeTeam.name:state.awayTeam.name}
+            </span>
+            <span style="color:var(--amber);font-weight:700">${e.hs}:${e.as}</span>
+            ${e.hSub?`<span style="color:var(--purple);font-size:9px">⇌${e.hSub}</span>`:''}
+          </div>
+        `).join('')}
+      </div>
+    `:''}
+  `
+}
+
+function lmPoint(side){
+  if(!T.liveMatch)return
+  addMatchPoint(T.liveMatch,side)
+  T.liveMatch.serving=side
+  renderLiveMatch()
+}
+
+function lmUndo(){
+  if(!T.liveMatch||!T.liveMatch.events.length)return
+  const ev=T.liveMatch.events.pop()
+  if(ev.side==='home')T.liveMatch.homeScore--;else T.liveMatch.awayScore--;
+  renderLiveMatch()
+}
+
+function lmEndSet(){
+  if(!T.liveMatch)return
+  const s=T.liveMatch
+  const w=s.homeScore>=s.awayScore?'home':'away'
+  if(w==='home')s.hSets++;else s.aSets++;
+  if(s.hSets===3||s.aSets===3||s.setNum===5){s.done=true}
+  else{s.setNum++;s.homeScore=0;s.awayScore=0}
+  renderLiveMatch()
+}
+
+/* ════════════════════════════════
+   MODALS
+   ════════════════════════════════ */
+function openModal(ctx){
+  const [type,id]=ctx.split(':')
+  document.getElementById('mtt').textContent=''
+  document.getElementById('mbody').innerHTML=''
+
+  if(type==='add-team'){
+    document.getElementById('mtt').textContent='إضافة فريق جديد'
+    pfIdx=0
+    document.getElementById('mbody').innerHTML=`
+      <div class="fg"><label class="fl">اسم الفريق</label><input class="fi" id="fi-tn" placeholder="مثال: سموحة"></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">اللون</label><input type="color" class="fi" id="fi-tc" value="#5eead4" style="height:38px;padding:4px"></div>
+        <div class="fg"><label class="fl">عدد اللاعبين الأساسيين</label>
+          <select class="fi fi-sel" id="fi-pn" onchange="resetPlayerFields()">
+            <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+          </select>
+        </div>
+      </div>
+      <div style="font-size:10.5px;color:var(--faint);margin:8px 0 5px">بيانات اللاعبين (6 على الأقل في الملعب)</div>
+      <div id="fi-pl"></div>
+      <button class="btn btn-ghost btn-full btn-sm" onclick="addPF()">＋ لاعب آخر</button>
+      <button class="btn btn-primary btn-full" style="margin-top:9px" onclick="saveTeam()">💾 حفظ الفريق</button>
+    `
+    for(let i=0;i<6;i++)addPF()
+  }
+
+  else if(type==='team'){
+    const tm=T.teams.find(t=>t.id==id)
+    if(!tm)return
+    document.getElementById('mtt').textContent=tm.name
+    const s=tm.stats||{}
+    document.getElementById('mbody').innerHTML=`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px">
+        <div style="width:12px;height:12px;border-radius:50%;background:${tm.color}"></div>
+        ${tm.pot?`<span class="badge b${tm.pot.toLowerCase()}">صيص ${tm.pot}</span>`:''}
+        <span style="font-size:11px;color:var(--faint)">PPS الفريق: ${((tm.pps||0)*100).toFixed(1)}%</span>
+        <span style="font-size:11px;color:var(--faint)">نقاط: ${((tm.score||0)*100).toFixed(1)}</span>
+      </div>
+      <div class="card-sm" style="margin-bottom:10px">
+        <div class="rep-kv"><span class="rep-key">مباريات</span><span class="rep-val">${s.played||0}</span></div>
+        <div class="rep-kv"><span class="rep-key">انتصارات</span><span class="rep-val" style="color:var(--green)">${s.wins||0}</span></div>
+        <div class="rep-kv"><span class="rep-key">نقاط له</span><span class="rep-val">${s.ptsFor||0}</span></div>
+        <div class="rep-kv"><span class="rep-key">نقاط عليه</span><span class="rep-val">${s.ptsAgainst||0}</span></div>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>اللاعب</th><th>سن</th><th>طول</th><th>وثب</th><th>PPS</th><th>دورات</th></tr></thead>
+        <tbody>
+          ${[...tm.players].sort((a,b)=>b.pps-a.pps).map(p=>`
+            <tr>
+              <td style="font-weight:600">${p.name}</td>
+              <td>${p.age}</td><td>${p.height}</td><td>${p.jump}</td>
+              <td style="color:${tm.color}">${((p.pps||0)*100).toFixed(0)}%</td>
+              <td>${p.rotations||0}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <button class="btn btn-red btn-full btn-sm" style="margin-top:11px" onclick="removeTeam(${tm.id})">🗑 حذف الفريق</button>
+    `
+  }
+
+  else if(type==='match'){
+    const m=T.matches.find(x=>x.id==id)
+    if(!m)return
+    document.getElementById('mtt').textContent='إجراءات المباراة'
+    document.getElementById('mbody').innerHTML=`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:13px;padding:10px;background:var(--surface2);border-radius:10px">
+        <span style="color:${m.homeColor};font-weight:800;flex:1;text-align:right;font-size:13px">${m.homeName}</span>
+        <span style="color:var(--faint);font-size:11px">vs</span>
+        <span style="color:${m.awayColor};font-weight:800;flex:1;text-align:left;font-size:13px">${m.awayName}</span>
+      </div>
+      <div style="font-size:10px;color:var(--faint);margin-bottom:10px">ج${m.round} · ${m.groupLabel} · ملعب ${m.court} · ${m.time}</div>
+      
+      <button class="btn btn-red btn-full" onclick="closeModal();openLiveMatch(${m.id})" ${m.status==='done'?'disabled':''}>
+        🔴 بدء المباراة المباشرة (مع الدوران)
+      </button>
+      
+      <div style="text-align:center;margin:10px 0;font-size:10px;color:var(--faint)">— أو أدخل النتيجة يدوياً —</div>
+      
+      <div class="fr">
+        <div class="fg"><label class="fl" style="color:${m.homeColor}">${m.homeName} (أشواط)</label>
+          <input class="fi" id="fi-hs" type="number" min="0" max="3" value="${m.homeScore??''}"></div>
+        <div class="fg"><label class="fl" style="color:${m.awayColor}">${m.awayName} (أشواط)</label>
+          <input class="fi" id="fi-as" type="number" min="0" max="3" value="${m.awayScore??''}"></div>
+      </div>
+      <button class="btn btn-amber btn-full" onclick="saveResult(${m.id})">✓ حفظ النتيجة</button>
+      ${m.status==='done'?`<button class="btn btn-ghost btn-full" style="margin-top:5px" onclick="clearResult(${m.id})">↩ مسح النتيجة</button>`:''}
+    `
+  }
+
+  document.getElementById('mo').classList.add('open')
+}
+
+function closeModal(){document.getElementById('mo').classList.remove('open')}
+
+function addPF(){
+  const list=document.getElementById('fi-pl');if(!list)return
+  const i=pfIdx++
+  const d=document.createElement('div')
+  d.style.cssText='background:#060c1a;border-radius:9px;padding:9px;margin-bottom:7px;border:1px solid var(--surface2)'
+  d.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+      <span style="font-size:10px;color:var(--faint)">لاعب ${i+1}</span>
+      ${i>=6?`<button onclick="this.closest('div').parentElement.remove()" style="background:var(--red-bg);border:none;color:var(--red);border-radius:6px;padding:2px 7px;cursor:pointer;font-size:10px">حذف</button>`:''}
+    </div>
+    <div class="fg" style="margin-bottom:6px"><input class="fi pf-n" placeholder="الاسم الكامل" style="font-size:11.5px"></div>
+    <div class="fr">
+      <div class="fg" style="margin-bottom:0"><label class="fl">عمر (9-12)</label><input class="fi pf-a" type="number" min="9" max="12" placeholder="10" style="font-size:11.5px"></div>
+      <div class="fg" style="margin-bottom:0"><label class="fl">طول (سم)</label><input class="fi pf-h" type="number" placeholder="140" style="font-size:11.5px"></div>
+    </div>
+    <div class="fr" style="margin-top:6px">
+      <div class="fg" style="margin-bottom:0"><label class="fl">مناولة (سم)</label><input class="fi pf-r" type="number" placeholder="155" style="font-size:11.5px"></div>
+      <div class="fg" style="margin-bottom:0"><label class="fl">وثب عمودي (سم)</label><input class="fi pf-j" type="number" placeholder="30" style="font-size:11.5px"></div>
+    </div>
+  `
+  list.appendChild(d)
+}
+
+function resetPlayerFields(){
+  const n=parseInt(document.getElementById('fi-pn')?.value||6)
+  const list=document.getElementById('fi-pl');if(!list)return
+  list.innerHTML='';pfIdx=0
+  for(let i=0;i<n;i++)addPF()
+}
+
+function saveTeam(){
+  const name=document.getElementById('fi-tn')?.value?.trim()
+  const color=document.getElementById('fi-tc')?.value||'#5eead4'
+  if(!name){toast('أدخل اسم الفريق');return}
+  const cards=document.querySelectorAll('#fi-pl > div')
+  const players=[];const errs=[]
+  cards.forEach((card,ci)=>{
+    const n=card.querySelector('.pf-n')?.value?.trim()
+    const age=parseInt(card.querySelector('.pf-a')?.value)
+    const h=parseInt(card.querySelector('.pf-h')?.value)
+    const r=parseInt(card.querySelector('.pf-r')?.value)
+    const j=parseInt(card.querySelector('.pf-j')?.value)
+    if(!n&&!age&&!h)return // skip empty rows
+    const p={id:_PID++,name:n||`لاعب ${ci+1}`,age:age||10,height:h||140,reach:r||155,jump:j||30,pps:0,rotations:0,setsPlayed:0}
+    const ve=validatePlayer(p)
+    if(ve.length)errs.push(`${p.name}: ${ve.join(', ')}`)
+    else players.push(p)
+  })
+  if(errs.length){toast('⚠️ '+errs[0]);return}
+  if(players.length<1){toast('أضف لاعباً واحداً على الأقل');return}
+  T.teams.push(mkTeam(name,color,players))
+  T.teams[T.teams.length-1].id=_TID-1
+  calcAllPPS(); assignPots(); closeModal(); renderSetup()
+  toast(`✓ تم إضافة ${name} (${players.length} لاعب)`)
+}
+
+function removeTeam(id){
+  if(!confirm('هل تريد حذف هذا الفريق نهائياً؟'))return
+  T.teams=T.teams.filter(t=>t.id!=id)
+  T.matches=T.matches.filter(m=>m.homeId!=id&&m.awayId!=id)
+  calcAllPPS(); assignPots(); closeModal(); renderSetup()
+  toast('تم حذف الفريق')
+}
+
+function saveResult(id){
+  const m=T.matches.find(x=>x.id==id);if(!m)return
+  const h=parseInt(document.getElementById('fi-hs')?.value)
+  const a=parseInt(document.getElementById('fi-as')?.value)
+  if(isNaN(h)||isNaN(a)||h<0||a<0){toast('أدخل نتيجة صحيحة');return}
+  if(h===a){toast('لا تعادل في كرة الطائرة');return}
+  if(Math.max(h,a)>3){toast('الحد الأقصى 3 أشواط');return}
+  m.homeScore=h;m.awayScore=a;m.status='done'
+  calcScores(); closeModal(); renderSchedule(); renderRanking()
+  toast(`✓ ${h>a?m.homeName:m.awayName} فاز بـ ${Math.max(h,a)}:${Math.min(h,a)}`)
+}
+
+function clearResult(id){
+  const m=T.matches.find(x=>x.id==id);if(!m)return
+  m.homeScore=null;m.awayScore=null;m.status='scheduled'
+  calcScores();closeModal();renderSchedule();renderRanking()
+  toast('تم مسح النتيجة')
+}
+
+/* ════════════════════════════════
+   UTILITIES
+   ════════════════════════════════ */
+function shuffle(arr){
+  const a=[...arr]
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  return a
+}
+
+function updateBadge(){
+  document.getElementById('r-badge').textContent=T.phase==='running'?`الجولة ${T.round}`:'الإعداد'
+  const live=T.matches.filter(m=>m.status==='live').length
+  document.getElementById('live-count').textContent=live?`${live}🔴`:''
+}
+
+function toast(msg){
+  const t=document.getElementById('toast')
+  t.textContent=msg;t.style.opacity='1'
+  clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',2400)
+}
+
+/* ── Init ── */
+renderSetup()
+renderAI()
+</script>
+</body>
+</html>

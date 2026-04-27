@@ -1,0 +1,15 @@
+# Project Management Files
+implementation_plan*.md
+task*.md
+walkthrough*.md
+
+# Gemini / AI Assistant Files
+.gemini/
+brain/
+
+# IDE Files
+.vscode/
+
+# OS Files
+Thumbs.db
+.DS_Store
