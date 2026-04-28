@@ -3,26 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محرك الكرة الطائرة المصغرة (Mini Volley Engine)</title>
+    <title>XURA TOURNAMENT | منصة إدارة البطولات</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
         <!-- Top Bar -->
         <header class="topbar">
-            <h1 style="cursor: pointer;" onclick="document.querySelector('.nav-item[data-view=\'dashboard\']').click()">⚡ XURA TOURNAMENT</h1>
+            <h1 style="cursor: pointer;" onclick="document.querySelector('.nav-item[data-view=\'dashboard\']').click()">⚡ XURA</h1>
             <div class="user-controls">
-                <button id="btn-login-top" class="badge ghost" style="cursor:pointer; border:none; color:var(--teal);">الإدارة 🔒</button>
-                <span id="current-user-display" style="font-size: 12px; color: var(--text);">غير مسجل الدخول</span>
-                <span id="db-status-badge" class="badge ghost" style="font-size: 10px; margin-right: 5px;">فحص الاتصال...</span>
+                <span id="db-status-badge" class="badge ghost">جاري الاتصال...</span>
+                <button id="btn-login-top" class="badge ghost" style="cursor:pointer; border:none; color:var(--primary);">دخول 🔒</button>
+                <span id="current-user-display" style="font-size: 12px; color: var(--text-dim);">غير مسجل</span>
                 <button id="btn-logout" class="badge blost hidden" style="cursor:pointer; border:none;">خروج</button>
             </div>
         </header>
 
-        <!-- Navigation -->
-        <nav class="nav sidebar">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
             <a href="#" class="nav-item active" data-view="dashboard">
                 <span class="icon">📊</span> <span class="nav-text">الرئيسية</span>
             </a>
