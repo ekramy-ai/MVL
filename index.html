@@ -48,6 +48,9 @@
             <a href="#" class="nav-item" data-view="teams-list">
                 <span class="icon">🛡️</span> <span class="nav-text">الفرق</span>
             </a>
+            <a href="#" class="nav-item" data-view="players-directory">
+                <span class="icon">👥</span> <span class="nav-text">اللاعبين</span>
+            </a>
             <a href="#" class="nav-item" data-view="matchmaker">
                 <span class="icon">⚔️</span> <span class="nav-text">المباريات</span>
             </a>
@@ -153,6 +156,40 @@
                     </div>
                     <div id="public-teams-list" class="grid-3">
                         <!-- Populated by JS -->
+                    </div>
+                </section>
+
+                <!-- Players Directory View (Detailed Database) -->
+                <section id="view-players-directory" class="view-section">
+                    <div class="sec-title">
+                        <span>قاعدة بيانات اللاعبين</span>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2>كافة اللاعبين واللاعبات</h2>
+                                <p>عرض تفصيلي لكافة البيانات البدنية ومستوى الأداء</p>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="search-players" placeholder="بحث باسم اللاعب..." style="padding: 8px 16px; font-size: 13px; max-width: 200px;">
+                                <button class="btn ghost btn-sm">تصدير Excel</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table" id="players-directory-table">
+                                <thead>
+                                    <tr>
+                                        <th>اللاعب</th>
+                                        <th>الفريق</th>
+                                        <th>العمر</th>
+                                        <th>الطول</th>
+                                        <th>الارتقاء</th>
+                                        <th>PPS</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 

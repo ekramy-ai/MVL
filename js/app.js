@@ -25,6 +25,7 @@ const init = async () => {
     setupForms();
     setupActions();
     setupRefereeBoard();
+    setupSearch();
     
     // Initial empty render
     renderTeamsSelect();
@@ -532,6 +533,7 @@ const updateUI = () => {
     renderAdminTeamsList();
     renderAdminPlayersTable();
     renderPublicTeamsList();
+    renderPlayersDirectory();
 };
 
 const renderPublicTeamsList = () => {
@@ -633,6 +635,47 @@ window.deletePlayer = async (id) => {
         await DB.deletePlayer(id);
         await loadData();
         updateUI();
+    }
+};
+
+const renderPlayersDirectory = () => {
+    const tbody = document.querySelector('#players-directory-table tbody');
+    const searchInput = document.getElementById('search-players');
+    if (!tbody) return;
+
+    const leagueTeams = filterByLeague(state.teams);
+    const teamIds = leagueTeams.map(t => t.id);
+    let players = state.players.filter(p => teamIds.includes(p.teamId));
+
+    if (searchInput && searchInput.value) {
+        const query = searchInput.value.toLowerCase();
+        players = players.filter(p => p.name.toLowerCase().includes(query));
+    }
+
+    tbody.innerHTML = players.map(p => {
+        const team = state.teams.find(t => t.id === p.teamId);
+        return `
+            <tr>
+                <td><strong>${p.name}</strong></td>
+                <td>${team ? team.name : '-'}</td>
+                <td>${p.age} سنة</td>
+                <td>${p.height} سم</td>
+                <td>${p.jump || '-'} سم</td>
+                <td><span class="badge primary">${p.pps?.toFixed(1) || '0.0'}</span></td>
+            </tr>
+        `;
+    }).join('');
+
+    if (players.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">لا يوجد لاعبين في هذه الفئة حالياً</td></tr>';
+    }
+};
+
+// Add search listener after window load or in init
+const setupSearch = () => {
+    const searchInput = document.getElementById('search-players');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => renderPlayersDirectory());
     }
 };
 
