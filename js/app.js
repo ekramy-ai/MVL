@@ -98,16 +98,31 @@ const init = async () => {
     // 2. Setup Real-time Listeners
     updateDBStatus();
     
-    // Migration: Fix missing leagues for existing data
+    // Migration: Fix missing leagues for existing data in Firebase
     await loadData();
-    let migrated = false;
+    let migratedCount = 0;
+    
     for (const t of state.teams) {
         if (!t.league) {
-            await DB.updateTeam(t.id, { league: 'U10_BOYS' });
-            migrated = true;
+            await DB.updateTeam(t.id, { league: 'U8_BOYS' });
+            migratedCount++;
         }
     }
-    if (migrated) await loadData();
+    
+    for (const p of state.players) {
+        if (!p.league) {
+            // Find team's league or default
+            const team = state.teams.find(t => t.id === p.teamId);
+            const pLeague = team ? (team.league || 'U8_BOYS') : 'U8_BOYS';
+            await DB.updatePlayer(p.id, { league: pLeague });
+            migratedCount++;
+        }
+    }
+    
+    if (migratedCount > 0) {
+        console.log(`Migrated ${migratedCount} items to default league.`);
+        await loadData();
+    }
 
     if (db) {
         DB.subscribe('teams', (data) => { state.teams = data; updateUI(); });
