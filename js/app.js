@@ -1396,12 +1396,111 @@ const renderActiveMatch = () => {
     }
 };
 
+const showTeamDetails = (teamId) => {
+    const team = state.teams.find(t => t.id === teamId);
+    if (!team) return;
+
+    const teamPlayers = state.players.filter(p => p.teamId === teamId);
+    const container = document.getElementById('team-details-content');
+    
+    document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-team-details').classList.add('active');
+
+    const isAdmin = state.currentUserRole === 'admin';
+
+    container.innerHTML = `
+        <div class="card" style="border-top: 4px solid var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px;">
+                <div style="display: flex; gap: 24px; align-items: center;">
+                    <div style="width: 80px; height: 80px; background: var(--bg-subtle); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 40px; border: 1px solid var(--border-bright);">🛡️</div>
+                    <div>
+                        <h2 style="font-size: 32px; font-weight: 900; margin-bottom: 8px;">${team.name}</h2>
+                        <p style="color: var(--text-dim); font-size: 16px;">النادي: ${team.region || 'غير محدد'} | المرحلة: ${team.league || '-'}</p>
+                        <div class="badge primary mt-2">PPS ${team.pps?.toFixed(1) || '0.0'}</div>
+                    </div>
+                </div>
+                ${isAdmin ? `
+                    <button class="btn ghost btn-sm" onclick="editTeamPrompt('${team.id}')">تعديل بيانات النادي ⚙️</button>
+                ` : ''}
+            </div>
+
+            <div class="sec-title" style="margin-top: 40px;">
+                <span>قائمة اللاعبين (${teamPlayers.length})</span>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>الاسم</th>
+                            <th>العمر</th>
+                            <th>الطول</th>
+                            <th>الارتقاء</th>
+                            <th>PPS</th>
+                            ${isAdmin ? '<th>إجراءات</th>' : ''}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${teamPlayers.map(p => `
+                            <tr>
+                                <td><strong>${p.name}</strong></td>
+                                <td>${p.age} سنة</td>
+                                <td>${p.height} سم</td>
+                                <td>${p.jump || '-'} سم</td>
+                                <td><span class="badge ghost">${p.pps?.toFixed(1) || '0.0'}</span></td>
+                                ${isAdmin ? `
+                                    <td>
+                                        <button class="btn ghost btn-sm" onclick="editPlayerPrompt('${p.id}')">تعديل</button>
+                                        <button class="btn ghost btn-sm" style="color: var(--danger);" onclick="deletePlayer('${p.id}')">حذف</button>
+                                    </td>
+                                ` : ''}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            ${teamPlayers.length === 0 ? '<p style="text-align: center; color: var(--text-dim); margin-top: 20px;">لا يوجد لاعبين مسجلين لهذا الفريق</p>' : ''}
+        </div>
+    `;
+};
+
+window.showTeamDetails = showTeamDetails;
+
+window.editTeamPrompt = async (id) => {
+    const team = state.teams.find(t => t.id === id);
+    if (!team) return;
+    const newName = prompt('اسم الفريق الجديد:', team.name);
+    const newRegion = prompt('المنطقة الجديدة:', team.region || '');
+    if (newName) {
+        await DB.updateTeam(id, { name: newName, region: newRegion });
+        await loadData();
+        showTeamDetails(id);
+        updateUI();
+    }
+};
+
+window.editPlayerPrompt = async (id) => {
+    const p = state.players.find(p => p.id === id);
+    if (!p) return;
+    const newName = prompt('اسم اللاعب الجديد:', p.name);
+    const newAge = prompt('العمر الجديد:', p.age);
+    if (newName && newAge) {
+        const updated = { ...p, name: newName, age: parseInt(newAge) };
+        updated.pps = calculatePlayerPPS(updated, state.players);
+        await DB.updatePlayer(id, updated);
+        await loadData();
+        showTeamDetails(p.teamId);
+        updateUI();
+    }
+};
+
 const showMatchDetails = (matchId) => {
     document.querySelector('.nav-item[data-view="history"]').click();
 };
 
 const logMatchEvent = (match, msg) => {
     const logList = document.getElementById('match-log-list');
+    if(!logList) return;
     const li = document.createElement('li');
     li.textContent = `[النتيجة ${match.score.A}-${match.score.B}] ${msg}`;
     logList.prepend(li);
