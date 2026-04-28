@@ -98,30 +98,34 @@ const init = async () => {
     // 2. Setup Real-time Listeners
     updateDBStatus();
     
-    // Migration: Fix missing leagues for existing data in Firebase
-    await loadData();
-    let migratedCount = 0;
-    
-    for (const t of state.teams) {
-        if (!t.league) {
-            await DB.updateTeam(t.id, { league: 'U8_BOYS' });
-            migratedCount++;
-        }
-    }
-    
-    for (const p of state.players) {
-        if (!p.league) {
-            // Find team's league or default
-            const team = state.teams.find(t => t.id === p.teamId);
-            const pLeague = team ? (team.league || 'U8_BOYS') : 'U8_BOYS';
-            await DB.updatePlayer(p.id, { league: pLeague });
-            migratedCount++;
-        }
-    }
-    
-    if (migratedCount > 0) {
-        console.log(`Migrated ${migratedCount} items to default league.`);
+    window.addEventListener('firebase-quota-exceeded', () => {
+        updateDBStatus(false);
+        const badge = document.getElementById('db-status-badge');
+        if(badge) badge.textContent = "تجاوز الحصة (Offline)";
+        alert('⚠️ تم تجاوز حصة Firebase المجانية لليوم. الموقع سيعمل الآن في وضع "الأوفلاين" (يتم الحفظ في متصفحك فقط) حتى يتم إعادة تعيين الحصة غداً.');
+    });
+
+    // Migration: Fix missing leagues
+    const migrationRun = localStorage.getItem('migration_v4_done');
+    if (!migrationRun) {
         await loadData();
+        let migratedCount = 0;
+        for (const t of state.teams) {
+            if (!t.league) {
+                await DB.updateTeam(t.id, { league: 'U8_BOYS' });
+                migratedCount++;
+            }
+        }
+        for (const p of state.players) {
+            if (!p.league) {
+                const team = state.teams.find(t => t.id === p.teamId);
+                const pLeague = team ? (team.league || 'U8_BOYS') : 'U8_BOYS';
+                await DB.updatePlayer(p.id, { league: pLeague });
+                migratedCount++;
+            }
+        }
+        if (migratedCount > 0) await loadData();
+        localStorage.setItem('migration_v4_done', 'true');
     }
 
     if (db) {

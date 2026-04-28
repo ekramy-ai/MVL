@@ -16,11 +16,16 @@ const saveLocal = () => {
     localStorage.setItem('mvl_settings', JSON.stringify(localSettings));
 };
 
+let firebaseDisabled = false;
+
 const isFirebaseActive = () => {
-    return db !== null && db !== undefined;
+    return !firebaseDisabled && db !== null && db !== undefined;
 };
 
 export const DB = {
+    setFirebaseDisabled(val) {
+        firebaseDisabled = val;
+    },
     async migrateLocalToFirebase() {
         if (!isFirebaseActive()) return;
         try {
@@ -61,7 +66,14 @@ export const DB = {
             try {
                 const querySnapshot = await getDocs(collection(db, "teams"));
                 return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            } catch (e) { console.error("Error getting teams", e); return []; }
+            } catch (e) { 
+                console.error("Error getting teams", e); 
+                if (e.code === 'resource-exhausted') {
+                    firebaseDisabled = true;
+                    window.dispatchEvent(new CustomEvent('firebase-quota-exceeded'));
+                }
+                return [...localTeams]; 
+            }
         } else {
             return [...localTeams];
         }
