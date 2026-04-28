@@ -79,17 +79,23 @@ const init = async () => {
         });
     }
     
-    // 2. Load data in background
+    // 2. Setup Real-time Listeners
     updateDBStatus();
-    try {
-        await loadData();
-        // Update render after data arrives
-        renderTeamsSelect();
-        updateUI();
+    if (db) {
+        DB.subscribe('teams', (data) => { state.teams = data; updateUI(); });
+        DB.subscribe('players', (data) => { state.players = data; updateUI(); });
+        DB.subscribe('matches', (data) => { state.matches = data; updateUI(); });
         updateDBStatus(true);
-    } catch (e) {
-        console.error("Data loading failed", e);
-        updateDBStatus(false);
+    } else {
+        // Fallback to one-time load if Firebase fails
+        try {
+            await loadData();
+            renderTeamsSelect();
+            updateUI();
+            updateDBStatus(false);
+        } catch (e) {
+            console.error("Data loading failed", e);
+        }
     }
 };
 
@@ -169,32 +175,17 @@ const setupNavigation = () => {
 };
 
 const updateNavVisibility = () => {
-    const sidebar = document.querySelector('.sidebar');
+    const isAdmin = state.currentUserRole === 'admin';
     
-    if (!state.currentUserRole) {
-        if (sidebar) sidebar.style.display = 'none';
-    } else {
-        if (sidebar) {
-            // Desktop: flex column, Mobile: flex row
-            sidebar.style.display = 'flex';
-        }
-    }
-
     document.querySelectorAll('.nav-item').forEach(nav => {
-        const view = nav.dataset.view;
-        const publicViews = ['dashboard', 'pots', 'matchmaker', 'history'];
+        const isAdminOnly = nav.classList.contains('admin-only');
         
-        if (view === 'login') {
-            nav.style.display = 'none';
-            return;
-        }
-
-        if (state.currentUserRole === 'admin') {
-            nav.style.display = 'flex';
-        } else if (state.currentUserRole === 'referee' && (view === 'referee' || publicViews.includes(view))) {
-            nav.style.display = 'flex';
+        if (isAdminOnly) {
+            if (isAdmin) nav.classList.remove('hidden');
+            else nav.classList.add('hidden');
         } else {
-            nav.style.display = 'none';
+            // Public views are always visible
+            nav.classList.remove('hidden');
         }
     });
 
@@ -510,6 +501,49 @@ const updateUI = () => {
     renderRefereeSelect();
     renderRefereesTable();
     renderHistoryTable();
+    renderAdminTeamsList();
+    renderPublicTeamsList();
+};
+
+const renderPublicTeamsList = () => {
+    const container = document.getElementById('public-teams-list');
+    if (!container) return;
+    
+    container.innerHTML = state.teams.map(t => `
+        <div class="card" style="cursor: pointer; transition: transform 0.2s;" onclick="showTeamDetails('${t.id}')">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="badge ghost" style="font-size: 20px; padding: 15px;">🛡️</div>
+                <div>
+                    <div style="font-weight: 800; font-size: 16px; color: var(--teal);">${t.name}</div>
+                    <div style="font-size: 12px; color: var(--text2);">PPS: ${t.pps?.toFixed(1) || '0.0'} | ${state.players.filter(p => p.teamId === t.id).length} لاعب</div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+};
+
+const renderAdminTeamsList = () => {
+    const container = document.getElementById('admin-teams-list');
+    if (!container) return;
+    
+    container.innerHTML = state.teams.map(t => `
+        <div class="card-sm" style="display: flex; justify-content: space-between; align-items: center; background: var(--surface2); padding: 10px; border-radius: 8px;">
+            <div>
+                <div style="font-weight: bold;">${t.name}</div>
+                <div style="font-size: 11px; color: var(--text2);">${state.players.filter(p => p.teamId === t.id).length} لاعب</div>
+            </div>
+            <button class="btn danger btn-sm" onclick="deleteTeam('${t.id}')">حذف</button>
+        </div>
+    `).join('');
+};
+
+window.deleteTeam = async (id) => {
+    if (confirm('هل أنت متأكد من حذف هذا الفريق وجميع لاعبيه؟')) {
+        // Implementation for deletion...
+        // Actually I need to add deleteTeam to DB
+        // For now let's just alert
+        alert('سيتم إضافة خاصية الحذف الكامل قريباً');
+    }
 };
 
 const renderDashboard = () => {
@@ -523,19 +557,23 @@ const renderDashboard = () => {
         const refNameMap = {};
         state.referees.forEach(r => refNameMap[r.id] = r.name);
         
+        const isLive = m.status === 'playing';
         let scoreDisplay = '<span class="msd" style="color:var(--faint); font-size:16px;">VS</span>';
-        if (m.status === 'completed' || m.status === 'playing') {
+        
+        if (m.status === 'completed') {
             const setsA = m.sets ? m.sets.teamA : 0;
             const setsB = m.sets ? m.sets.teamB : 0;
             scoreDisplay = `<span class="msd" style="color:var(--teal); font-size:18px;">${setsA} - ${setsB}</span>`;
+        } else if (isLive) {
+            scoreDisplay = `<span class="msd" style="color:var(--amber); font-size:22px; font-weight:900;">${m.score.A} - ${m.score.B}</span>`;
         }
 
         return `
-            <div class="mc">
+            <div class="mc ${isLive ? 'live-border' : ''}">
                 <div class="mm">
                     <span>المجموعة ${m.groupId} - الجولة ${m.round}</span>
-                    <span class="badge ${m.status === 'playing' ? 'ba' : (m.status === 'completed' ? 'bb' : 'ghost')}">
-                        ${m.status === 'playing' ? 'جارية' : (m.status === 'completed' ? 'انتهت' : 'لم تبدأ')}
+                    <span class="badge ${isLive ? 'ba' : (m.status === 'completed' ? 'bb' : 'ghost')}">
+                        ${isLive ? '<span class="live-badge"><span>●</span> مباشر</span>' : (m.status === 'completed' ? 'انتهت' : 'لم تبدأ')}
                     </span>
                 </div>
                 <div class="mt" style="margin-top:8px">
@@ -543,6 +581,7 @@ const renderDashboard = () => {
                     ${scoreDisplay}
                     <span class="mtn away">${m.teamB.name}</span>
                 </div>
+                ${isLive ? `<div style="text-align: center; font-size: 10px; color: var(--amber); margin-top: 5px;">الأشواط: ${m.score.setsA || 0} - ${m.score.setsB || 0}</div>` : ''}
                 <div style="margin-top: 10px; font-size: 11px; color: var(--text2); text-align: center;">
                     الحكم: ${refNameMap[m.referee] || 'لم يعين'}
                 </div>
@@ -781,7 +820,7 @@ const renderStandings = () => {
     
     stats.slice(0, limit).forEach((s, index) => {
         tbody.innerHTML += `
-            <tr>
+            <tr style="cursor: pointer;" onclick="showTeamDetails('${s.team.id}')">
                 <td>${index + 1}</td>
                 <td><strong>${s.team.name}</strong></td>
                 <td>${s.played}</td>
@@ -804,6 +843,77 @@ const renderStandings = () => {
             </tr>
         `;
     }
+};
+
+const renderLiveMatches = (dashboardMatches) => {
+    const container = document.getElementById('live-matches-container');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    dashboardMatches.forEach(m => {
+        const teamA = state.teams.find(t => t.id === m.teamAId);
+        const teamB = state.teams.find(t => t.id === m.teamBId);
+        
+        const isLive = m.status === 'live';
+        
+        container.innerHTML += `
+            <div class="card ${isLive ? 'live-border' : ''}">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span class="badge ghost" style="font-size: 10px;">الجولة ${m.round || '1'} | ${m.groupId || 'A'}</span>
+                    ${isLive ? '<span class="live-badge"><span>●</span> مباشر</span>' : ''}
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1; text-align: center;">
+                        <div style="font-weight: bold; font-size: 14px;">${teamA ? teamA.name : 'انتظار...'}</div>
+                    </div>
+                    <div style="flex: 1; text-align: center; font-size: 20px; font-weight: 900; color: var(--teal);">
+                        ${m.score.A} - ${m.score.B}
+                    </div>
+                    <div style="flex: 1; text-align: center;">
+                        <div style="font-weight: bold; font-size: 14px;">${teamB ? teamB.name : 'انتظار...'}</div>
+                    </div>
+                </div>
+                <div style="text-align: center; font-size: 10px; color: var(--text2); margin-top: 5px;">
+                    أشواط: ${m.score.setsA || 0} - ${m.score.setsB || 0}
+                </div>
+            </div>
+        `;
+    });
+};
+
+const showTeamDetails = (teamId) => {
+    const team = state.teams.find(t => t.id === teamId);
+    if (!team) return;
+    
+    const teamPlayers = state.players.filter(p => p.teamId === teamId);
+    const container = document.getElementById('team-details-content');
+    
+    // Switch view
+    document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-team-details').classList.add('active');
+    
+    container.innerHTML = `
+        <div class="card" style="border-top: 4px solid var(--teal);">
+            <div class="card-header">
+                <h2>${team.name}</h2>
+                <span class="badge bb">PPS: ${team.pps?.toFixed(1) || '0.0'}</span>
+            </div>
+            <p style="color: var(--text2); margin-bottom: 10px;">المنطقة: ${team.region || 'غير محدد'}</p>
+        </div>
+        
+        <div class="sec-title">قائمة اللاعبين (${teamPlayers.length})</div>
+        <div class="grid-2">
+            ${teamPlayers.map(p => `
+                <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: bold; color: var(--text);">${p.name}</div>
+                        <div style="font-size: 11px; color: var(--text2);">العمر: ${p.age} | الطول: ${p.height}سم</div>
+                    </div>
+                    <div class="badge ghost">PPS: ${p.pps?.toFixed(1) || '0.0'}</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
 };
 
 // --- Referee Dashboard ---

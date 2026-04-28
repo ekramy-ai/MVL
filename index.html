@@ -12,7 +12,7 @@
     <div class="app-container">
         <!-- Top Bar -->
         <header class="topbar">
-            <h1 style="cursor: pointer;" onclick="document.querySelector('.nav-item[data-view=\\'dashboard\\']').click()">⚡ XURA TOURNAMENT</h1>
+            <h1 style="cursor: pointer;" onclick="document.querySelector('.nav-item[data-view=\'dashboard\']').click()">⚡ XURA TOURNAMENT</h1>
             <div class="user-controls">
                 <button id="btn-login-top" class="badge ghost" style="cursor:pointer; border:none; color:var(--teal);">الإدارة 🔒</button>
                 <span id="current-user-display" style="font-size: 12px; color: var(--text);">غير مسجل الدخول</span>
@@ -24,32 +24,38 @@
         <!-- Navigation -->
         <nav class="nav sidebar">
             <a href="#" class="nav-item active" data-view="dashboard">
-                <span class="icon">🥇</span> <span class="nav-text">الترتيب</span>
+                <span class="icon">📊</span> <span class="nav-text">الرئيسية</span>
             </a>
-            <a href="#" class="nav-item" data-view="ingestion">
-                <span class="icon">⚙️</span> <span class="nav-text">البيانات</span>
-            </a>
-            <a href="#" class="nav-item" data-view="pots">
-                <span class="icon">🏆</span> <span class="nav-text">المستويات</span>
+            <a href="#" class="nav-item" data-view="teams-list">
+                <span class="icon">🛡️</span> <span class="nav-text">الفرق</span>
             </a>
             <a href="#" class="nav-item" data-view="matchmaker">
-                <span class="icon">📅</span> <span class="nav-text">المباريات</span>
-            </a>
-            <a href="#" class="nav-item" data-view="referee">
-                <span class="icon">⚖️</span> <span class="nav-text">التحكيم</span>
-            </a>
-            <a href="#" class="nav-item" data-view="referee-management">
-                <span class="icon">👥</span> <span class="nav-text">الحكام</span>
+                <span class="icon">⚔️</span> <span class="nav-text">المباريات</span>
             </a>
             <a href="#" class="nav-item" data-view="history">
                 <span class="icon">📜</span> <span class="nav-text">السجل</span>
+            </a>
+            <a href="#" class="nav-item admin-only hidden" data-view="ingestion">
+                <span class="icon">⚙️</span> <span class="nav-text">الإدارة</span>
             </a>
         </nav>
 
         <!-- Main Content -->
         <main class="main-content">
             <div class="screens">
-                <!-- 0. Login View -->
+                <!-- 0. Teams List View (Public) -->
+                <section id="view-teams-list" class="view-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>الفرق المشاركة</h2>
+                        </div>
+                        <div id="public-teams-list" class="grid-2">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1. Login View -->
                 <section id="view-login" class="view-section">
                     <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
                         <div class="card" style="width: 100%; max-width: 400px; text-align: center;">
@@ -197,6 +203,15 @@
                                 </div>
                                 <button type="submit" class="btn secondary">إضافة اللاعب وحساب PPS</button>
                             </form>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>إدارة الفرق</h2>
+                            </div>
+                            <div id="admin-teams-list" class="form-layout">
+                                <!-- Populated by JS -->
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -366,8 +381,15 @@
                     </div>
                 </section>
 
-                <!-- 7. History View -->
-                <section id="view-history" class="view-section">
+                <!-- 7. Team Details View -->
+                <section id="view-team-details" class="view-section">
+                    <button class="btn ghost btn-sm mb-4" onclick="document.querySelector('.nav-item[data-view=\'dashboard\']').click()">← عودة</button>
+                    <div id="team-details-content">
+                        <!-- Populated by JS -->
+                    </div>
+                </section>
+
+                <!-- 8. History View -->
                     <div class="card">
                         <div class="card-header">
                             <h2>سجل المباريات المكتملة</h2>

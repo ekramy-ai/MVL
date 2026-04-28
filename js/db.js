@@ -219,5 +219,15 @@ export const DB = {
             localSettings = { ...localSettings, ...data };
             saveLocal();
         }
+    },
+
+    subscribe(collectionName, callback) {
+        if (!isFirebaseActive()) return () => {};
+        return onSnapshot(collection(db, collectionName), (querySnapshot) => {
+            const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            callback(data);
+        }, (error) => {
+            console.error(`Subscription error for ${collectionName}:`, error);
+        });
     }
 };

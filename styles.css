@@ -38,6 +38,33 @@ body {
   }
 }
 
+/* ── Live Indicator ── */
+.live-badge {
+  background: var(--red);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  animation: pulse 1.5s infinite;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.card-sm {
+  background: rgba(255,255,255,0.03);
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
 /* ── Top Bar ── */
 .topbar {
   padding: 10px 20px;
@@ -46,30 +73,27 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  background: #030918;
-  height: 60px;
+  background: linear-gradient(to bottom, #0a1020, #030918);
+  height: 65px;
+  box-shadow: 0 2px 15px rgba(0,0,0,0.3);
 }
 
 @media (min-width: 768px) {
   .topbar {
-    border-bottom: none;
-    border-bottom: 1px solid var(--surface2);
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    z-index: 10;
+    z-index: 1000;
   }
 }
 
 .topbar h1 {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 900;
   letter-spacing: .05em;
   color: var(--teal);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  text-shadow: 0 0 10px rgba(94, 234, 212, 0.3);
 }
 
 .user-controls {
@@ -89,12 +113,18 @@ body {
 
 /* ── Navigation (Bottom Mobile / Sidebar Desktop) ── */
 .nav {
-  display: none; /* Hidden by default, shown by JS on login */
+  display: flex; /* Always flex now, but items visibility depends on login */
   border-top: 1px solid var(--surface2);
   flex-shrink: 0;
   background: #08101e;
   order: 3; /* Bottom by default */
-  height: 60px;
+  height: 65px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
 }
 
 @media (min-width: 768px) {
@@ -104,10 +134,12 @@ body {
     height: 100vh;
     border-top: none;
     border-left: 1px solid var(--surface2);
-    order: 1; /* Sidebar on right depending on RTL */
-    padding-top: 60px; /* Space for topbar */
-    z-index: 5;
+    order: 1; 
+    padding-top: 60px;
+    position: static;
+    box-shadow: none;
   }
+}
   [dir="ltr"] .nav {
     border-left: none;
     border-right: 1px solid var(--surface2);
@@ -168,6 +200,7 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 15px;
+  padding-bottom: 80px; /* Space for bottom nav */
 }
 
 .screens::-webkit-scrollbar { width: 4px; }
@@ -198,11 +231,13 @@ body {
 
 /* ── Cards ── */
 .card {
-  background: var(--surface);
-  border: 1px solid var(--surface2);
-  border-radius: 13px;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
@@ -211,18 +246,16 @@ body {
   align-items: center;
   margin-bottom: 15px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--surface2);
+  border-bottom: 1px solid var(--faint);
 }
 
 .card-header h2, .card-header h3 {
-  font-size: 16px;
-  color: var(--text);
+  font-size: 18px;
+  color: var(--teal);
   font-weight: 800;
-}
-.card-header p {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 5px;
+  background: linear-gradient(to right, var(--teal), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* ── Layout Grids ── */
