@@ -502,6 +502,7 @@ const updateUI = () => {
     renderRefereesTable();
     renderHistoryTable();
     renderAdminTeamsList();
+    renderAdminPlayersTable();
     renderPublicTeamsList();
 };
 
@@ -526,26 +527,81 @@ const renderPublicTeamsList = () => {
 };
 
 const renderAdminTeamsList = () => {
-    const container = document.getElementById('admin-teams-list');
-    if (!container) return;
+    const tbody = document.querySelector('#admin-teams-table tbody');
+    const filter = document.getElementById('admin-player-team-filter');
+    if (!tbody || !filter) return;
     
-    container.innerHTML = state.teams.map(t => `
-        <div class="card-sm" style="display: flex; justify-content: space-between; align-items: center; background: var(--surface2); padding: 10px; border-radius: 8px;">
-            <div>
-                <div style="font-weight: bold;">${t.name}</div>
-                <div style="font-size: 11px; color: var(--text2);">${state.players.filter(p => p.teamId === t.id).length} لاعب</div>
-            </div>
-            <button class="btn danger btn-sm" onclick="deleteTeam('${t.id}')">حذف</button>
-        </div>
-    `).join('');
+    tbody.innerHTML = '';
+    
+    // Also update the filter dropdown if it's empty
+    if (filter.options.length <= 1) {
+        state.teams.forEach(t => {
+            filter.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+        });
+        filter.addEventListener('change', () => renderAdminPlayersTable());
+    }
+
+    state.teams.forEach(t => {
+        const teamPlayers = state.players.filter(p => p.teamId === t.id).length;
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${t.name}</strong></td>
+                <td>${t.region || '-'}</td>
+                <td><span class="badge ghost">${t.pps?.toFixed(1) || '0.0'}</span></td>
+                <td>${teamPlayers}</td>
+                <td>
+                    <button class="btn ghost btn-sm" style="color: var(--danger);" onclick="deleteTeam('${t.id}')">حذف</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+const renderAdminPlayersTable = () => {
+    const tbody = document.querySelector('#admin-players-table tbody');
+    const filter = document.getElementById('admin-player-team-filter');
+    if (!tbody || !filter) return;
+    
+    const selectedTeamId = filter.value;
+    let players = state.players;
+    if (selectedTeamId) {
+        players = players.filter(p => p.teamId === selectedTeamId);
+    } else {
+        players = players.slice(0, 10); // Limit if no filter to avoid lag
+    }
+
+    tbody.innerHTML = players.map(p => {
+        const team = state.teams.find(t => t.id === p.teamId);
+        return `
+            <tr>
+                <td>${p.name}</td>
+                <td>${p.age}</td>
+                <td><span class="badge ghost">${p.pps?.toFixed(1) || '0.0'}</span></td>
+                <td>
+                    <button class="btn ghost btn-sm" style="color: var(--danger);" onclick="deletePlayer('${p.id}')">حذف</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    if (players.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا يوجد لاعبين مطابقين</td></tr>';
+    }
 };
 
 window.deleteTeam = async (id) => {
-    if (confirm('هل أنت متأكد من حذف هذا الفريق وجميع لاعبيه؟')) {
-        // Implementation for deletion...
-        // Actually I need to add deleteTeam to DB
-        // For now let's just alert
-        alert('سيتم إضافة خاصية الحذف الكامل قريباً');
+    if (confirm('هل أنت متأكد من حذف هذا الفريق؟ سيتم حذف بيانات الفريق فقط.')) {
+        await DB.deleteTeam(id);
+        await loadData();
+        updateUI();
+    }
+};
+
+window.deletePlayer = async (id) => {
+    if (confirm('هل أنت متأكد من حذف هذا اللاعب؟')) {
+        await DB.deletePlayer(id);
+        await loadData();
+        updateUI();
     }
 };
 

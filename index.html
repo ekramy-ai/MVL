@@ -45,7 +45,10 @@
                 <span class="icon">📜</span> <span class="nav-text">السجل</span>
             </a>
             <a href="#" class="nav-item admin-only hidden" data-view="ingestion">
-                <span class="icon">⚙️</span> <span class="nav-text">الإدارة</span>
+                <span class="icon">➕</span> <span class="nav-text">إضافة بيانات</span>
+            </a>
+            <a href="#" class="nav-item admin-only hidden" data-view="admin-mgmt">
+                <span class="icon">⚙️</span> <span class="nav-text">إدارة الجداول</span>
             </a>
             <a href="#" class="nav-item admin-only hidden" data-view="referee-management">
                 <span class="icon">👨‍⚖️</span> <span class="nav-text">الحكام</span>
@@ -257,6 +260,50 @@
                                     <button id="btn-clear-data" class="btn ghost btn-sm btn-full mt-2" style="color: var(--danger);">مسح كل البيانات</button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-admin-mgmt" class="view-section">
+                    <div class="sec-title">
+                        <span>إدارة الجداول</span>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>الفرق</h2>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table" id="admin-teams-table">
+                                <thead>
+                                    <tr>
+                                        <th>الفريق</th>
+                                        <th>المنطقة</th>
+                                        <th>PPS</th>
+                                        <th>إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h2>اللاعبين</h2>
+                            <select id="admin-player-team-filter">
+                                <option value="">كل الفرق</option>
+                            </select>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table" id="admin-players-table">
+                                <thead>
+                                    <tr>
+                                        <th>الاسم</th>
+                                        <th>PPS</th>
+                                        <th>إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
                         </div>
                     </div>
                 </section>

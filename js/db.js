@@ -191,11 +191,27 @@ export const DB = {
 
     async deleteReferee(id) {
         if (isFirebaseActive()) {
-            try {
-                await deleteDoc(doc(db, "referees", id));
-            } catch (e) { console.error("Error deleting referee", e); }
+            try { await deleteDoc(doc(db, "referees", id)); } catch (e) { console.error(e); }
         } else {
             localReferees = localReferees.filter(r => r.id !== id);
+            saveLocal();
+        }
+    },
+
+    async deleteTeam(id) {
+        if (isFirebaseActive()) {
+            try { await deleteDoc(doc(db, "teams", id)); } catch (e) { console.error(e); }
+        } else {
+            localTeams = localTeams.filter(t => t.id !== id);
+            saveLocal();
+        }
+    },
+
+    async deletePlayer(id) {
+        if (isFirebaseActive()) {
+            try { await deleteDoc(doc(db, "players", id)); } catch (e) { console.error(e); }
+        } else {
+            localPlayers = localPlayers.filter(p => p.id !== id);
             saveLocal();
         }
     },
