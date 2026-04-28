@@ -1,4 +1,5 @@
 import { DB } from './db.js';
+import { db } from './firebaseConfig.js';
 import { calculatePlayerPPS, calculateTeamPPS } from './ppsCalculator.js';
 import { clusterTeams } from './clustering.js';
 import { generateGroups, generateMatches } from './matchmaker.js';
