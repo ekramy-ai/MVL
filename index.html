@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XURA | منصة إدارة البطولات الإحترافية</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="brand" onclick="document.querySelector('.nav-item[data-view=\'dashboard\']').click()" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                <div class="logo-icon" style="width: 40px; height: 40px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--bg); font-size: 24px; box-shadow: 0 0 20px var(--primary-glow);">X</div>
+                <h1 style="margin: 0;">XURA</h1>
+            </div>
+            <div class="user-controls">
+                <div class="status-indicator" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 100px; border: 1px solid var(--border-bright);">
+                    <div id="db-status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--warning);"></div>
+                    <span id="db-status-badge" style="font-size: 12px; font-weight: 700; color: var(--text-dim);">جاري الاتصال...</span>
+                </div>
+                <button id="btn-login-top" class="btn ghost btn-sm">دخول 🔒</button>
+                <div id="user-profile" class="hidden" style="display: flex; align-items: center; gap: 12px;">
+                    <span id="current-user-display" style="font-size: 14px; font-weight: 700; color: var(--text);"></span>
+                    <button id="btn-logout" class="btn ghost btn-sm" style="color: var(--danger);">خروج</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <a href="#" class="nav-item active" data-view="dashboard">
+                <span class="icon">📊</span> <span class="nav-text">الرئيسية</span>
+            </a>
+            <a href="#" class="nav-item" data-view="teams-list">
+                <span class="icon">🛡️</span> <span class="nav-text">الفرق</span>
+            </a>
+            <a href="#" class="nav-item" data-view="matchmaker">
+                <span class="icon">⚔️</span> <span class="nav-text">المباريات</span>
+            </a>
+            <a href="#" class="nav-item" data-view="history">
+                <span class="icon">📜</span> <span class="nav-text">السجل</span>
+            </a>
+            <a href="#" class="nav-item admin-only hidden" data-view="ingestion">
+                <span class="icon">⚙️</span> <span class="nav-text">الإدارة</span>
+            </a>
+            <a href="#" class="nav-item admin-only hidden" data-view="referee-management">
+                <span class="icon">👨‍⚖️</span> <span class="nav-text">الحكام</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="screens">
+                
+                <!-- 1. Unified Dashboard View -->
+                <section id="view-dashboard" class="view-section active">
+                    <div class="dashboard-hero" style="margin-bottom: 40px;">
+                        <h2 style="font-size: 32px; font-weight: 900; margin-bottom: 8px;">أهلاً بك في XURA</h2>
+                        <p style="color: var(--text-dim); font-size: 16px;">متابعة فورية وشاملة لنتائج البطولة وتصنيفات الفرق</p>
+                    </div>
+
+                    <div class="quick-stats grid-3" style="margin-bottom: 40px;">
+                        <div class="card" style="padding: 24px; text-align: center;">
+                            <div style="font-size: 40px; margin-bottom: 10px;">🏆</div>
+                            <div id="stat-total-matches" style="font-size: 28px; font-weight: 900; font-family: 'Outfit';">--</div>
+                            <div style="color: var(--text-dim); font-size: 14px;">مباراة ملعوبة</div>
+                        </div>
+                        <div class="card" style="padding: 24px; text-align: center;">
+                            <div style="font-size: 40px; margin-bottom: 10px;">🛡️</div>
+                            <div id="stat-total-teams" style="font-size: 28px; font-weight: 900; font-family: 'Outfit';">--</div>
+                            <div style="color: var(--text-dim); font-size: 14px;">فريق مشارك</div>
+                        </div>
+                        <div class="card" style="padding: 24px; text-align: center;">
+                            <div style="font-size: 40px; margin-bottom: 10px;">🔥</div>
+                            <div id="stat-live-now" style="font-size: 28px; font-weight: 900; font-family: 'Outfit'; color: var(--primary);">--</div>
+                            <div style="color: var(--text-dim); font-size: 14px;">مباريات جارية</div>
+                        </div>
+                    </div>
+                    
+                    <div class="sec-title">
+                        <span>المباريات الجارية والنتائج</span>
+                    </div>
+                    <div id="dash-live-matches" class="grid-2" style="margin-bottom: 40px;">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                    <div class="sec-title">
+                        <span>الجدول القادم</span>
+                    </div>
+                    <div id="dash-upcoming-matches" class="grid-2" style="margin-bottom: 40px;">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                    <div class="sec-title">
+                        <span>ترتيب المجموعات</span>
+                    </div>
+                    <div id="dash-groups" class="groups-grid" style="margin-bottom: 40px;">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2>التصنيف العالمي الموحد</h2>
+                                <p>ترتيب الفرق بناءً على الأداء العام في البطولة</p>
+                            </div>
+                            <button class="btn ghost btn-sm">تحميل الترتيب PDF</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table" id="standings-table">
+                                <thead>
+                                    <tr>
+                                        <th>المركز</th>
+                                        <th>الفريق</th>
+                                        <th>لعب</th>
+                                        <th>فاز</th>
+                                        <th>خسر</th>
+                                        <th>معدل الفوز</th>
+                                        <th>فارق النقاط</th>
+                                        <th>نسبة النقاط</th>
+                                        <th>النتيجة النهائية</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 0. Teams List View (Public) -->
+                <section id="view-teams-list" class="view-section">
+                    <div class="sec-title">
+                        <span>الفرق المشاركة</span>
+                    </div>
+                    <div id="public-teams-list" class="grid-3">
+                        <!-- Populated by JS -->
+                    </div>
+                </section>
+
+                <!-- Login View -->
+                <section id="view-login" class="view-section">
+                    <div style="display: flex; justify-content: center; align-items: center; min-height: 60vh;">
+                        <div class="card" style="width: 100%; max-width: 450px; padding: 48px;">
+                            <div style="text-align: center; margin-bottom: 32px;">
+                                <div style="width: 64px; height: 64px; background: var(--primary-glow); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 32px;">🔒</div>
+                                <h2 style="font-weight: 900; margin-bottom: 8px;">تسجيل الدخول</h2>
+                                <p style="color: var(--text-dim);">يرجى إدخال بيانات الاعتماد للوصول للإدارة</p>
+                            </div>
+                            <form id="login-form" class="form-layout">
+                                <div class="form-group">
+                                    <label>اسم المستخدم</label>
+                                    <input type="text" id="login-username" required placeholder="أدخل اسم المستخدم">
+                                </div>
+                                <div class="form-group">
+                                    <label>كلمة المرور</label>
+                                    <input type="password" id="login-password" required placeholder="••••••••">
+                                </div>
+                                <button type="submit" class="btn primary btn-full mt-4">دخول للمنصة</button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Data Ingestion View (Admin) -->
+                <section id="view-ingestion" class="view-section">
+                    <div class="sec-title">
+                        <span>إدارة البيانات الأساسية</span>
+                    </div>
+                    <div class="grid-2-1">
+                        <div style="display: flex; flex-direction: column; gap: 24px;">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2>إضافة فريق جديد</h2>
+                                </div>
+                                <form id="add-team-form" class="form-layout">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>اسم الفريق</label>
+                                            <input type="text" id="team-name" required placeholder="مثال: نسور النادي">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>المنطقة / النادي</label>
+                                            <input type="text" id="team-region" required placeholder="مثال: القاهرة">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn primary">إضافة الفريق لقاعدة البيانات</button>
+                                </form>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2>إضافة لاعب لفريق</h2>
+                                </div>
+                                <form id="add-player-form" class="form-layout">
+                                    <div class="form-group">
+                                        <label>اختيار الفريق</label>
+                                        <select id="player-team-select" required>
+                                            <option value="">اختر من القائمة...</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>اسم اللاعب</label>
+                                            <input type="text" id="player-name" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>العمر</label>
+                                            <input type="number" id="player-age" min="9" max="12" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>الطول (سم)</label>
+                                            <input type="number" id="player-height" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>مدى الذراعين (سم)</label>
+                                            <input type="number" id="player-reach" required>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn secondary">إضافة وحساب PPS</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 24px;">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2>عمليات سريعة</h2>
+                                </div>
+                                <div class="form-layout">
+                                    <div style="padding: 16px; background: rgba(var(--primary-rgb), 0.05); border-radius: 12px; border: 1px dashed var(--primary);">
+                                        <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 13px;">استيراد من ملف</label>
+                                        <input type="file" id="teams-file-input" style="font-size: 12px; margin-bottom: 12px; width: 100%;">
+                                        <button id="btn-generate-teams-from-file" class="btn primary btn-sm btn-full">توليد من الملف</button>
+                                    </div>
+                                    <button id="btn-migrate-firebase" class="btn amber btn-full">مزامنة Firebase ☁️</button>
+                                    <button id="btn-clear-data" class="btn ghost btn-sm btn-full" style="color: var(--danger);">مسح كل البيانات</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Matchmaker View -->
+                <section id="view-matchmaker" class="view-section">
+                    <div class="sec-title">
+                        <span>تنظيم المواجهات</span>
+                        <button id="btn-generate-groups" class="btn primary btn-sm">توليد المجموعات آلياً</button>
+                    </div>
+                    <div id="groups-container" class="groups-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                    
+                    <div class="sec-title" style="margin-top: 48px;">
+                        <span>جدول المباريات التفصيلي</span>
+                    </div>
+                    <div class="card" style="padding: 24px;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>تصفية حسب المجموعة</label>
+                                <select id="filter-group">
+                                    <option value="">كل المجموعات</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>تصفية حسب الفريق</label>
+                                <select id="filter-team">
+                                    <option value="">كل الفرق</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="matches-container" class="grid-2">
+                        <!-- Populated by JS -->
+                    </div>
+                </section>
+
+                <!-- 5. Referee Dashboard -->
+                <section id="view-referee" class="view-section">
+                    <div class="sec-title">
+                        <span>لوحة التحكم التحكيمية</span>
+                    </div>
+                    
+                    <div class="card" style="max-width: 600px; margin: 0 auto 32px;">
+                        <div class="card-header">
+                            <h2>اختيار مباراة جارية</h2>
+                        </div>
+                        <select id="referee-match-select" class="large-select">
+                            <option value="">اختر المباراة لبدء التسجيل...</option>
+                        </select>
+                    </div>
+
+                    <div id="active-match-board" class="match-board hidden">
+                        <div class="scoreboard">
+                            <div class="team-score" id="board-team-a">
+                                <h2 class="team-name">فريق أ</h2>
+                                <div class="score-display">0</div>
+                                <button class="btn primary add-point-btn" data-team="A">+ نقطة للفريق</button>
+                                
+                                <div class="card" style="background: rgba(0,0,0,0.2); margin-top: 32px; width: 100%; border-style: dashed;">
+                                    <p style="font-weight: 800; color: var(--primary); margin-bottom: 12px; text-align: center;">المرسل: <span id="serving-a">--</span></p>
+                                    <div class="court-display" id="court-a" style="margin: 0 auto;"></div>
+                                </div>
+                            </div>
+
+                            <div class="score-divider">
+                                <span>VS</span>
+                                <div class="match-status">قيد اللعب</div>
+                            </div>
+
+                            <div class="team-score" id="board-team-b">
+                                <h2 class="team-name">فريق ب</h2>
+                                <div class="score-display">0</div>
+                                <button class="btn primary add-point-btn" data-team="B">+ نقطة للفريق</button>
+                                
+                                <div class="card" style="background: rgba(0,0,0,0.2); margin-top: 32px; width: 100%; border-style: dashed;">
+                                    <p style="font-weight: 800; color: var(--primary); margin-bottom: 12px; text-align: center;">المرسل: <span id="serving-b">--</span></p>
+                                    <div class="court-display" id="court-b" style="margin: 0 auto;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: center; gap: 16px; margin-top: 40px;">
+                            <button id="btn-end-match" class="btn danger" style="padding: 16px 40px;">إنهاء المباراة واعتماد النتيجة النهائية</button>
+                        </div>
+                        
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h2>سجل الأحداث المباشر</h2>
+                            </div>
+                            <ul id="match-log-list" class="log-list" style="max-height: 300px;"></ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. Referee Management View -->
+                <section id="view-referee-management" class="view-section">
+                    <div class="sec-title">
+                        <span>إدارة طاقم التحكيم</span>
+                    </div>
+                    <div class="grid-2-1">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>قائمة الحكام المعتمدين</h2>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="referees-table">
+                                    <thead>
+                                        <tr>
+                                            <th>الاسم</th>
+                                            <th>الدرجة</th>
+                                            <th>المباريات</th>
+                                            <th>إجراء</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>إضافة حكم</h2>
+                            </div>
+                            <form id="add-referee-form" class="form-layout">
+                                <div class="form-group">
+                                    <label>اسم الحكم</label>
+                                    <input type="text" id="referee-name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>الدرجة</label>
+                                    <input type="text" id="referee-grade">
+                                </div>
+                                <div class="form-group">
+                                    <label>كلمة المرور</label>
+                                    <input type="text" id="referee-password" required>
+                                </div>
+                                <button type="submit" class="btn primary btn-full">حفظ الحكم</button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 8. History View -->
+                <section id="view-history" class="view-section">
+                    <div class="sec-title">
+                        <span>سجل النتائج النهائية</span>
+                    </div>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table" id="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>المجموعة</th>
+                                        <th>الفريق الأول</th>
+                                        <th>النتيجة</th>
+                                        <th>الفريق الثاني</th>
+                                        <th>الحكم</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7. Team Details View -->
+                <section id="view-team-details" class="view-section">
+                    <button class="btn ghost btn-sm mb-4" onclick="document.querySelector('.nav-item[data-view=\'dashboard\']').click()">← عودة للرئيسية</button>
+                    <div id="team-details-content"></div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Lineup Modal -->
+    <div id="lineup-modal" class="modal">
+        <div class="modal-content">
+            <div class="card-header">
+                <h2>اختيار التشكيل الأساسي للشوط</h2>
+            </div>
+            <div class="grid-2">
+                <div>
+                    <h3 id="lineup-teamA-name" style="color: var(--primary); margin-bottom: 16px;">فريق أ</h3>
+                    <div id="lineup-teamA-players" class="form-layout" style="gap: 12px;"></div>
+                </div>
+                <div>
+                    <h3 id="lineup-teamB-name" style="color: var(--secondary); margin-bottom: 16px;">فريق ب</h3>
+                    <div id="lineup-teamB-players" class="form-layout" style="gap: 12px;"></div>
+                </div>
+            </div>
+            <div style="margin-top: 40px; display: flex; justify-content: flex-end; gap: 16px;">
+                <button id="btn-cancel-lineup" class="btn ghost">إلغاء</button>
+                <button id="btn-save-lineup" class="btn primary">تأكيد وبدء الشوط 🔥</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
