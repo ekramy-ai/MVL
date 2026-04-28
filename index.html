@@ -256,6 +256,17 @@
                                 </form>
                             </div>
 
+                            <div class="card" style="border: 2px dashed var(--primary); background: rgba(var(--primary-rgb), 0.05);">
+                                <div class="card-header">
+                                    <div>
+                                        <h2>مزامنة البيانات السحابية</h2>
+                                        <p>رفع كافة البيانات المحلية (الفرق، اللاعبين، المباريات) إلى Firebase Firestore</p>
+                                    </div>
+                                    <button id="btn-sync-firebase" class="btn primary">مزامنة الآن ☁️</button>
+                                </div>
+                                <div id="sync-status-msg" style="font-size: 13px; margin-top: -10px; color: var(--text-dim);"></div>
+                            </div>
+
                             <div class="card">
                                 <div class="card-header">
                                     <h2>إضافة لاعب لفريق</h2>
