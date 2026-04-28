@@ -14,6 +14,7 @@ let state = {
     currentRound: 1,
     activeMatchId: null,
     currentUserRole: null,
+    currentLeague: 'U10_BOYS',
     filters: { group: '', team: '' }
 };
 
@@ -77,6 +78,19 @@ const init = async () => {
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
             document.getElementById('view-login').classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        });
+    }
+
+    // League Selector Listener
+    const leagueSelector = document.getElementById('league-selector');
+    if (leagueSelector) {
+        leagueSelector.value = state.currentLeague;
+        leagueSelector.addEventListener('change', (e) => {
+            state.currentLeague = e.target.value;
+            // Update admin form select too
+            const teamLeagueSelect = document.getElementById('team-league-select');
+            if(teamLeagueSelect) teamLeagueSelect.value = state.currentLeague;
+            updateUI();
         });
     }
     
@@ -210,12 +224,14 @@ const setupForms = () => {
         e.preventDefault();
         const name = document.getElementById('team-name').value;
         const region = document.getElementById('team-region').value;
+        const league = document.getElementById('team-league-select').value;
         
-        await DB.addTeam({ name, region, pps: 0 });
+        await DB.addTeam({ name, region, league, pps: 0 });
         await loadData();
         renderTeamsSelect();
         e.target.reset();
-        alert('تم إضافة الفريق بنجاح');
+        document.getElementById('team-league-select').value = state.currentLeague;
+        alert('تم إضافة الفريق بنجاح للفئة المختارة');
     });
 
     document.getElementById('add-player-form').addEventListener('submit', async (e) => {
@@ -265,11 +281,16 @@ const setupActions = () => {
 
     document.getElementById('btn-cluster-teams').addEventListener('click', () => {
         renderPots();
-        alert('تم تحديث وتصنيف الفرق حسب المستويات (Pots)');
+        alert('تم تحديث وتصنيف الفرق حسب المستويات (Pots) للفئة المختارة');
     });
 
     document.getElementById('btn-generate-groups').addEventListener('click', async () => {
-        const pots = clusterTeams(state.teams);
+        const leagueTeams = filterByLeague(state.teams);
+        if (leagueTeams.length < 3) {
+            alert('لا يوجد عدد كافٍ من الفرق في هذه الفئة لتوليد مجموعات (تحتاج 3 على الأقل)');
+            return;
+        }
+        const pots = clusterTeams(leagueTeams);
         const groups = generateGroups(pots);
         const matches = generateMatches(groups, state.currentRound);
         
@@ -279,7 +300,7 @@ const setupActions = () => {
         
         await loadData();
         renderGroupsAndMatches(groups);
-        alert('تم توليد المجموعات والمباريات لهذه الجولة');
+        alert('تم توليد المجموعات والمباريات للفئة المختارة');
     });
 
     const btnGenerateTeams = document.getElementById('btn-generate-teams-from-file');
@@ -491,8 +512,15 @@ const setupActions = () => {
     }
 };
 
-// --- UI Updaters ---
+const filterByLeague = (items) => {
+    return items.filter(i => (i.league === state.currentLeague) || (!i.league && state.currentLeague === 'U10_BOYS'));
+};
+
 const updateUI = () => {
+    // Sync Selectors
+    const leagueSelector = document.getElementById('league-selector');
+    if(leagueSelector) leagueSelector.value = state.currentLeague;
+
     updateNavVisibility();
     renderDashboard();
     renderStandings();
@@ -510,7 +538,9 @@ const renderPublicTeamsList = () => {
     const container = document.getElementById('public-teams-list');
     if (!container) return;
     
-    container.innerHTML = state.teams.map(t => `
+    const leagueTeams = filterByLeague(state.teams);
+    
+    container.innerHTML = leagueTeams.map(t => `
         <div class="mc" onclick="showTeamDetails('${t.id}')">
             <div style="display: flex; align-items: center; gap: 20px;">
                 <div style="width: 50px; height: 50px; background: var(--bg-subtle); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid var(--border-bright);">🛡️</div>
@@ -532,16 +562,17 @@ const renderAdminTeamsList = () => {
     if (!tbody || !filter) return;
     
     tbody.innerHTML = '';
+    const leagueTeams = filterByLeague(state.teams);
     
-    // Also update the filter dropdown if it's empty
-    if (filter.options.length <= 1) {
-        state.teams.forEach(t => {
-            filter.innerHTML += `<option value="${t.id}">${t.name}</option>`;
-        });
-        filter.addEventListener('change', () => renderAdminPlayersTable());
-    }
+    // Update player filter
+    const currentFilterVal = filter.value;
+    filter.innerHTML = '<option value="">تصفية حسب الفريق...</option>';
+    leagueTeams.forEach(t => {
+        filter.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+    });
+    filter.value = currentFilterVal;
 
-    state.teams.forEach(t => {
+    leagueTeams.forEach(t => {
         const teamPlayers = state.players.filter(p => p.teamId === t.id).length;
         tbody.innerHTML += `
             <tr>
@@ -612,9 +643,13 @@ const renderDashboard = () => {
     
     if (!liveContainer || !upcomingContainer || !groupsContainer) return;
 
+    const leagueTeams = filterByLeague(state.teams);
+    const teamIds = leagueTeams.map(t => t.id);
+    const leagueMatches = state.matches.filter(m => teamIds.includes(m.teamAId) || teamIds.includes(m.teamBId));
+
     // Update Stats
-    const completedMatches = state.matches.filter(m => m.status === 'completed');
-    const liveMatchesNow = state.matches.filter(m => m.status === 'playing');
+    const completedMatches = leagueMatches.filter(m => m.status === 'completed');
+    const liveMatchesNow = leagueMatches.filter(m => m.status === 'playing');
     
     const statMatches = document.getElementById('stat-total-matches');
     const statTeams = document.getElementById('stat-total-teams');
@@ -779,14 +814,17 @@ const renderHistoryTable = () => {
 
 const renderTeamsSelect = () => {
     const select = document.getElementById('player-team-select');
+    if(!select) return;
+    const leagueTeams = filterByLeague(state.teams);
     select.innerHTML = '<option value="">اختر الفريق...</option>';
-    state.teams.forEach(t => {
+    leagueTeams.forEach(t => {
         select.innerHTML += `<option value="${t.id}">${t.name}</option>`;
     });
 };
 
 const renderPots = () => {
-    const pots = clusterTeams(state.teams);
+    const leagueTeams = filterByLeague(state.teams);
+    const pots = clusterTeams(leagueTeams);
     ['potA', 'potB', 'potC'].forEach((potKey, index) => {
         const container = document.querySelector(`#pot-${['a','b','c'][index]}`);
         if(!container) return;
@@ -845,6 +883,10 @@ const renderMatchesList = () => {
 
     let pendingMatches = state.matches.filter(m => m.status === 'pending');
     
+    const leagueTeams = filterByLeague(state.teams);
+    const teamIds = leagueTeams.map(t => t.id);
+    pendingMatches = pendingMatches.filter(m => teamIds.includes(m.teamAId) || teamIds.includes(m.teamBId));
+
     if (state.filters.group) {
         pendingMatches = pendingMatches.filter(m => m.groupId === state.filters.group);
     }
@@ -916,7 +958,11 @@ const renderStandings = () => {
     if(!tbody) return;
     tbody.innerHTML = '';
     
-    const stats = calculateTeamStats(state.teams, state.matches);
+    const leagueTeams = filterByLeague(state.teams);
+    const teamIds = leagueTeams.map(t => t.id);
+    const leagueMatches = state.matches.filter(m => teamIds.includes(m.teamAId) || teamIds.includes(m.teamBId));
+
+    const stats = calculateTeamStats(leagueTeams, leagueMatches);
     const limit = window.dashboardExpandedStandings ? stats.length : 5;
     
     stats.slice(0, limit).forEach((s, index) => {

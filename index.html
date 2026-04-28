@@ -18,6 +18,16 @@
                 <h1 style="margin: 0;">XURA</h1>
             </div>
             <div class="user-controls">
+                <select id="league-selector" class="btn ghost btn-sm" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-bright); padding: 5px 15px; min-width: 180px; font-weight: 800;">
+                    <option value="U8_BOYS">تحت 8 سنوات - بنين</option>
+                    <option value="U8_GIRLS">تحت 8 سنوات - بنات</option>
+                    <option value="U9_BOYS">تحت 9 سنوات - بنين</option>
+                    <option value="U9_GIRLS">تحت 9 سنوات - بنات</option>
+                    <option value="U10_BOYS" selected>تحت 10 سنوات - بنين</option>
+                    <option value="U10_GIRLS">تحت 10 سنوات - بنات</option>
+                    <option value="U11_BOYS">تحت 11 سنة - بنين</option>
+                    <option value="U11_GIRLS">تحت 11 سنة - بنات</option>
+                </select>
                 <div class="status-indicator" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 100px; border: 1px solid var(--border-bright);">
                     <div id="db-status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--warning);"></div>
                     <span id="db-status-badge" style="font-size: 12px; font-weight: 700; color: var(--text-dim);">جاري الاتصال...</span>
@@ -190,6 +200,19 @@
                                         <div class="form-group">
                                             <label>المنطقة / النادي</label>
                                             <input type="text" id="team-region" required placeholder="مثال: القاهرة">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>الدوري / الفئة</label>
+                                            <select id="team-league-select" required>
+                                                <option value="U8_BOYS">تحت 8 سنوات - بنين</option>
+                                                <option value="U8_GIRLS">تحت 8 سنوات - بنات</option>
+                                                <option value="U9_BOYS">تحت 9 سنوات - بنين</option>
+                                                <option value="U9_GIRLS">تحت 9 سنوات - بنات</option>
+                                                <option value="U10_BOYS">تحت 10 سنوات - بنين</option>
+                                                <option value="U10_GIRLS">تحت 10 سنوات - بنات</option>
+                                                <option value="U11_BOYS">تحت 11 سنة - بنين</option>
+                                                <option value="U11_GIRLS">تحت 11 سنة - بنات</option>
+                                            </select>
                                         </div>
                                     </div>
                                     <button type="submit" class="btn primary">إضافة الفريق لقاعدة البيانات</button>
