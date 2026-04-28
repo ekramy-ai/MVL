@@ -14,7 +14,7 @@ let state = {
     currentRound: 1,
     activeMatchId: null,
     currentUserRole: null,
-    currentLeague: 'U10_BOYS',
+    currentLeague: 'U8_BOYS',
     filters: { group: '', team: '' }
 };
 
@@ -97,6 +97,18 @@ const init = async () => {
     
     // 2. Setup Real-time Listeners
     updateDBStatus();
+    
+    // Migration: Fix missing leagues for existing data
+    await loadData();
+    let migrated = false;
+    for (const t of state.teams) {
+        if (!t.league) {
+            await DB.updateTeam(t.id, { league: 'U10_BOYS' });
+            migrated = true;
+        }
+    }
+    if (migrated) await loadData();
+
     if (db) {
         DB.subscribe('teams', (data) => { state.teams = data; updateUI(); });
         DB.subscribe('players', (data) => { state.players = data; updateUI(); });
@@ -330,12 +342,12 @@ const setupActions = () => {
                 }
 
                 btnGenerateTeams.textContent = "جاري مسح البيانات السابقة...";
-                await DB.clearAll();
+                // await DB.clearAll(); // Don't clear all if we want to keep other leagues
 
                 let processed = 0;
                 for (const teamName of lines) {
                     btnGenerateTeams.textContent = `جاري إضافة ${teamName}...`;
-                    await DB.addTeam({ name: teamName, region: 'محلي', pps: 0 });
+                    await DB.addTeam({ name: teamName, region: 'محلي', league: state.currentLeague, pps: 0 });
                     processed++;
                 }
 
@@ -393,6 +405,7 @@ const setupActions = () => {
                     const player = {
                         teamId: teamId,
                         name: playerName,
+                        league: state.currentLeague, // Added league for easier filtering
                         age: Math.floor(Math.random() * (12 - 9 + 1)) + 9,
                         height: Math.floor(Math.random() * (maxVals.maxH - 130 + 1)) + 130,
                         reach: Math.floor(Math.random() * (maxVals.maxR - 140 + 1)) + 140,
