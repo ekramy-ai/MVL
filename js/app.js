@@ -80,13 +80,34 @@ const init = async () => {
     }
     
     // 2. Load data in background
+    updateDBStatus();
     try {
         await loadData();
         // Update render after data arrives
         renderTeamsSelect();
         updateUI();
+        updateDBStatus(true);
     } catch (e) {
         console.error("Data loading failed", e);
+        updateDBStatus(false);
+    }
+};
+
+const updateDBStatus = (success = null) => {
+    const badge = document.getElementById('db-status-badge');
+    if (!badge) return;
+    
+    if (success === true) {
+        badge.textContent = 'متصل بالسحابة ✅';
+        badge.style.color = 'var(--green)';
+        badge.className = 'badge bwon';
+    } else if (success === false) {
+        badge.textContent = 'وضع الأوفلاين ⚠️';
+        badge.style.color = 'var(--amber)';
+        badge.className = 'badge ba';
+    } else {
+        badge.textContent = 'جاري الاتصال...';
+        badge.className = 'badge ghost';
     }
 };
 
@@ -250,21 +271,6 @@ const setupForms = () => {
 
 // --- Actions ---
 const setupActions = () => {
-    document.getElementById('btn-migrate-firebase')?.addEventListener('click', async () => {
-        if (confirm('هل أنت متأكد أنك تريد رفع جميع البيانات المحلية الحالية إلى قاعدة بيانات Firebase السحابية؟')) {
-            const btn = document.getElementById('btn-migrate-firebase');
-            btn.textContent = 'جاري الرفع...';
-            btn.disabled = true;
-            const success = await DB.migrateLocalToFirebase();
-            if (success) {
-                alert('تم رفع البيانات بنجاح! النظام الآن يعمل سحابياً.');
-            } else {
-                alert('حدث خطأ أثناء رفع البيانات. تحقق من الاتصال.');
-            }
-            btn.textContent = 'رفع البيانات المحلية إلى السحابة (Firebase)';
-            btn.disabled = false;
-        }
-    });
 
     document.getElementById('btn-cluster-teams').addEventListener('click', () => {
         renderPots();
@@ -646,6 +652,9 @@ const renderHistoryTable = () => {
                 <td>${refName}</td>
             </tr>
         `;
+    });
+};
+
 const renderTeamsSelect = () => {
     const select = document.getElementById('player-team-select');
     select.innerHTML = '<option value="">اختر الفريق...</option>';

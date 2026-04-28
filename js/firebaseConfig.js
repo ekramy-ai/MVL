@@ -18,7 +18,9 @@ try {
     db = getFirestore(app);
     console.log("Firebase initialized successfully");
 } catch (error) {
-    console.error("Firebase initialization failed. Please check your config.", error);
+    console.warn("Firebase initialization failed. Using local storage fallback.", error);
+    app = null;
+    db = null;
 }
 
 export { db };

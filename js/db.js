@@ -16,7 +16,9 @@ const saveLocal = () => {
     localStorage.setItem('mvl_settings', JSON.stringify(localSettings));
 };
 
-const isFirebaseActive = () => true;
+const isFirebaseActive = () => {
+    return db !== null && db !== undefined;
+};
 
 export const DB = {
     async migrateLocalToFirebase() {
