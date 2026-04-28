@@ -101,19 +101,18 @@ const init = async () => {
 
 const updateDBStatus = (success = null) => {
     const badge = document.getElementById('db-status-badge');
+    const dot = document.getElementById('db-status-dot');
     if (!badge) return;
     
     if (success === true) {
-        badge.textContent = 'متصل بالسحابة ✅';
-        badge.style.color = 'var(--green)';
-        badge.className = 'badge bwon';
+        badge.textContent = 'متصل بالسحابة';
+        if(dot) dot.style.background = 'var(--success)';
     } else if (success === false) {
-        badge.textContent = 'وضع الأوفلاين ⚠️';
-        badge.style.color = 'var(--amber)';
-        badge.className = 'badge ba';
+        badge.textContent = 'وضع الأوفلاين';
+        if(dot) dot.style.background = 'var(--warning)';
     } else {
         badge.textContent = 'جاري الاتصال...';
-        badge.className = 'badge ghost';
+        if(dot) dot.style.background = 'var(--text-muted)';
     }
 };
 
@@ -510,12 +509,15 @@ const renderPublicTeamsList = () => {
     if (!container) return;
     
     container.innerHTML = state.teams.map(t => `
-        <div class="card" style="cursor: pointer; transition: transform 0.2s;" onclick="showTeamDetails('${t.id}')">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div class="badge ghost" style="font-size: 20px; padding: 15px;">🛡️</div>
+        <div class="mc" onclick="showTeamDetails('${t.id}')">
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div style="width: 50px; height: 50px; background: var(--bg-subtle); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid var(--border-bright);">🛡️</div>
                 <div>
-                    <div style="font-weight: 800; font-size: 16px; color: var(--teal);">${t.name}</div>
-                    <div style="font-size: 12px; color: var(--text2);">PPS: ${t.pps?.toFixed(1) || '0.0'} | ${state.players.filter(p => p.teamId === t.id).length} لاعب</div>
+                    <div class="mtn">${t.name}</div>
+                    <div style="font-size: 13px; color: var(--text-dim); margin-top: 4px;">
+                        <span class="badge primary" style="padding: 2px 8px; font-size: 10px;">PPS ${t.pps?.toFixed(1) || '0.0'}</span>
+                        <span style="margin-right: 8px;">${state.players.filter(p => p.teamId === t.id).length} لاعب</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -552,79 +554,103 @@ const renderDashboard = () => {
     const groupsContainer = document.getElementById('dash-groups');
     
     if (!liveContainer || !upcomingContainer || !groupsContainer) return;
+
+    // Update Stats
+    const completedMatches = state.matches.filter(m => m.status === 'completed');
+    const liveMatchesNow = state.matches.filter(m => m.status === 'playing');
+    
+    const statMatches = document.getElementById('stat-total-matches');
+    const statTeams = document.getElementById('stat-total-teams');
+    const statLive = document.getElementById('stat-live-now');
+
+    if(statMatches) statMatches.textContent = completedMatches.length;
+    if(statTeams) statTeams.textContent = state.teams.length;
+    if(statLive) statLive.textContent = liveMatchesNow.length;
     
     const createMatchHTML = (m) => {
         const refNameMap = {};
         state.referees.forEach(r => refNameMap[r.id] = r.name);
         
         const isLive = m.status === 'playing';
-        let scoreDisplay = '<span class="msd" style="color:var(--faint); font-size:16px;">VS</span>';
+        const isCompleted = m.status === 'completed';
         
-        if (m.status === 'completed') {
+        let scoreDisplay = `<div class="msd" style="font-size: 16px; color: var(--text-muted);">VS</div>`;
+        
+        if (isCompleted) {
             const setsA = m.sets ? m.sets.teamA : 0;
             const setsB = m.sets ? m.sets.teamB : 0;
-            scoreDisplay = `<span class="msd" style="color:var(--teal); font-size:18px;">${setsA} - ${setsB}</span>`;
+            scoreDisplay = `<div class="msd">${setsA} - ${setsB}</div>`;
         } else if (isLive) {
-            scoreDisplay = `<span class="msd" style="color:var(--amber); font-size:22px; font-weight:900;">${m.score.A} - ${m.score.B}</span>`;
+            scoreDisplay = `
+                <div style="text-align: center;">
+                    <div class="msd">${m.score.A} - ${m.score.B}</div>
+                    <div style="font-size: 11px; color: var(--primary); font-weight: 800;">أشواط ${m.score.setsA || 0} - ${m.score.setsB || 0}</div>
+                </div>
+            `;
         }
 
         return `
-            <div class="mc ${isLive ? 'live-border' : ''}">
-                <div class="mm">
-                    <span>المجموعة ${m.groupId} - الجولة ${m.round}</span>
-                    <span class="badge ${isLive ? 'ba' : (m.status === 'completed' ? 'bb' : 'ghost')}">
-                        ${isLive ? '<span class="live-badge"><span>●</span> مباشر</span>' : (m.status === 'completed' ? 'انتهت' : 'لم تبدأ')}
-                    </span>
-                </div>
-                <div class="mt" style="margin-top:8px">
-                    <span class="mtn">${m.teamA.name}</span>
+            <div class="mc" ${isCompleted ? `onclick="showMatchDetails('${m.id}')"` : ''}>
+                <div class="mt">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1;">
+                        <div style="width: 48px; height: 48px; background: var(--bg-subtle); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid var(--border-bright);">🛡️</div>
+                        <span class="mtn" style="text-align: center;">${m.teamA.name}</span>
+                    </div>
+                    
                     ${scoreDisplay}
-                    <span class="mtn away">${m.teamB.name}</span>
+                    
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1;">
+                        <div style="width: 48px; height: 48px; background: var(--bg-subtle); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid var(--border-bright);">🛡️</div>
+                        <span class="mtn" style="text-align: center;">${m.teamB.name}</span>
+                    </div>
                 </div>
-                ${isLive ? `<div style="text-align: center; font-size: 10px; color: var(--amber); margin-top: 5px;">الأشواط: ${m.score.setsA || 0} - ${m.score.setsB || 0}</div>` : ''}
-                <div style="margin-top: 10px; font-size: 11px; color: var(--text2); text-align: center;">
-                    الحكم: ${refNameMap[m.referee] || 'لم يعين'}
+                
+                <div class="mc-status">
+                    <span>المجموعة ${m.groupId} | جولة ${m.round}</span>
+                    <span class="badge ${isLive ? 'primary' : (isCompleted ? 'success' : 'ghost')}">
+                        ${isLive ? '● مباشر' : (isCompleted ? 'انتهت' : 'قادمة')}
+                    </span>
                 </div>
             </div>
         `;
     };
 
-    const renderMatchesWithLimit = (matches, container, emptyMsg, limit = 2, viewTarget = 'matchmaker') => {
+    const renderMatchesWithLimit = (matches, container, emptyMsg, limit = 4, viewTarget = 'matchmaker') => {
         if (matches.length > 0) {
             const html = matches.slice(0, limit).map(createMatchHTML).join('');
             let btnHtml = '';
             if (matches.length > limit) {
-                btnHtml = `<button class="btn ghost btn-full mt-2" style="grid-column: 1/-1; border: 1px dashed var(--faint);" onclick="document.querySelector('.nav-item[data-view=\\'${viewTarget}\\']').click()">عرض باقي المباريات (${matches.length - limit}+)</button>`;
+                btnHtml = `<button class="btn ghost btn-full mt-4" onclick="document.querySelector('.nav-item[data-view=\\'${viewTarget}\\']').click()">عرض الكل (${matches.length})</button>`;
             }
             container.innerHTML = html + btnHtml;
         } else {
-            container.innerHTML = `<p style="color: var(--text2); grid-column: 1 / -1; text-align: center;">${emptyMsg}</p>`;
+            container.innerHTML = `<div class="card" style="grid-column: 1/-1; text-align: center; color: var(--text-muted); border-style: dashed;">${emptyMsg}</div>`;
         }
     };
 
-    const liveMatches = state.matches.filter(m => m.status === 'playing' || m.status === 'completed');
+    const liveAndRecent = state.matches.filter(m => m.status === 'playing' || m.status === 'completed');
     const upcomingMatches = state.matches.filter(m => m.status === 'pending');
 
-    renderMatchesWithLimit(liveMatches, liveContainer, 'لا توجد مباريات جارية أو ملعوبة حالياً.', 2, 'history');
-    renderMatchesWithLimit(upcomingMatches, upcomingContainer, 'لا توجد مباريات قادمة.', 2, 'matchmaker');
+    renderMatchesWithLimit(liveAndRecent, liveContainer, 'لا توجد نتائج مسجلة حالياً', 4, 'history');
+    renderMatchesWithLimit(upcomingMatches, upcomingContainer, 'لا توجد مباريات مجدولة', 4, 'matchmaker');
 
     if (state.currentGroups && state.currentGroups.length > 0) {
-        const groupsHtml = state.currentGroups.slice(0, 2).map((g, i) => `
-            <div class="card">
-                <div class="card-header" style="justify-content: center;"><h3>المجموعة ${i+1}</h3></div>
+        const groupsHtml = state.currentGroups.slice(0, 3).map((g, i) => `
+            <div class="group-card">
+                <h3>المجموعة ${i+1}</h3>
                 <ul class="team-list">
-                    ${g.map(t => `<li><span>${t.name}</span> <span class="badge ghost">PPS: ${t.pps.toFixed(1)}</span></li>`).join('')}
+                    ${g.map(t => `<li><span>${t.name}</span> <span class="badge ghost">PPS ${t.pps.toFixed(1)}</span></li>`).join('')}
                 </ul>
             </div>
         `).join('');
         
         let btnHtml = '';
-        if (state.currentGroups.length > 2) {
-            btnHtml = `<button class="btn ghost btn-full mt-2" style="grid-column: 1/-1; border: 1px dashed var(--faint);" onclick="document.querySelector('.nav-item[data-view=\\'pots\\']').click()">عرض كل المجموعات</button>`;
+        if (state.currentGroups.length > 3) {
+            btnHtml = `<button class="btn ghost btn-full mt-4" style="grid-column: 1/-1;" onclick="document.querySelector('.nav-item[data-view=\\'matchmaker\\']').click()">عرض باقي المجموعات</button>`;
         }
         groupsContainer.innerHTML = groupsHtml + btnHtml;
     } else {
-        groupsContainer.innerHTML = '<p style="color: var(--text2); grid-column: 1 / -1; text-align: center;">لم يتم توليد المجموعات بعد.</p>';
+        groupsContainer.innerHTML = '<div class="card" style="grid-column: 1/-1; text-align: center; color: var(--text-muted); border-style: dashed;">لم يتم إجراء القرعة بعد</div>';
     }
 };
 
@@ -705,10 +731,16 @@ const renderTeamsSelect = () => {
 const renderPots = () => {
     const pots = clusterTeams(state.teams);
     ['potA', 'potB', 'potC'].forEach((potKey, index) => {
-        const ul = document.querySelector(`#pot-${['a','b','c'][index]} .team-list`);
+        const container = document.querySelector(`#pot-${['a','b','c'][index]}`);
+        if(!container) return;
+        const ul = container.querySelector('.team-list');
         ul.innerHTML = '';
         pots[potKey].forEach(t => {
-            ul.innerHTML += `<li><span>${t.name}</span> <span class="badge ${index===0?'ba':index===1?'bb':'bc'}">PPS: ${t.pps.toFixed(1)}</span></li>`;
+            ul.innerHTML += `
+                <li onclick="showTeamDetails('${t.id}')" style="cursor:pointer;">
+                    <span>${t.name}</span> 
+                    <span class="badge ${index===0?'primary':index===1?'ghost':'ghost'}" style="font-family:'Outfit';">PPS ${t.pps.toFixed(1)}</span>
+                </li>`;
         });
     });
 };
@@ -775,22 +807,33 @@ const renderMatchesList = () => {
         const refereeOptions = state.referees.map(r => `<option value="${r.id}" ${m.referee === r.id ? 'selected' : ''}>${r.name}</option>`).join('');
         
         const refereeSelect = state.currentUserRole === 'admin' ? `
-            <select class="match-referee-select" data-match-id="${m.id}" style="margin-top: 10px; width: 100%; padding: 6px; font-size: 11px; background: var(--surface2); border: 1px solid var(--faint); color: var(--text); border-radius: 6px;">
-                <option value="">تعيين حكم...</option>
-                ${refereeOptions}
-            </select>
-        ` : `<div style="margin-top: 10px; font-size: 11px; color: var(--text2);">الحكم: ${refNameMap[m.referee] || 'لم يعين'}</div>`;
+            <div class="form-group" style="margin-top: 16px;">
+                <label style="font-size: 11px;">تعيين حكم المباراة</label>
+                <select class="match-referee-select" data-match-id="${m.id}" style="padding: 8px 12px; font-size: 12px;">
+                    <option value="">اختر حكم...</option>
+                    ${refereeOptions}
+                </select>
+            </div>
+        ` : `<div style="margin-top: 16px; font-size: 13px; color: var(--text-dim); display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 16px;">👨‍⚖️</span> الحكم: ${refNameMap[m.referee] || 'لم يعين'}
+             </div>`;
 
         container.innerHTML += `
             <div class="mc">
-                <div class="mm">
-                    <span>المجموعة ${m.groupId} - الجولة ${m.round}</span>
-                    <span class="badge bdraw">Best of 3 Sets</span>
+                <div class="mt">
+                    <div style="flex: 1; text-align: center;">
+                        <div style="width: 40px; height: 40px; background: var(--bg-subtle); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; border: 1px solid var(--border-bright);">🛡️</div>
+                        <div class="mtn" style="font-size: 15px;">${m.teamA.name}</div>
+                    </div>
+                    <div style="padding: 0 15px; font-weight: 900; color: var(--text-muted);">VS</div>
+                    <div style="flex: 1; text-align: center;">
+                        <div style="width: 40px; height: 40px; background: var(--bg-subtle); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; border: 1px solid var(--border-bright);">🛡️</div>
+                        <div class="mtn" style="font-size: 15px;">${m.teamB.name}</div>
+                    </div>
                 </div>
-                <div class="mt" style="margin-top:8px">
-                    <span class="mtn">${m.teamA.name}</span>
-                    <span class="msd" style="color:var(--faint); font-size:16px;">VS</span>
-                    <span class="mtn away">${m.teamB.name}</span>
+                <div class="mc-status" style="margin-top: 20px;">
+                    <span style="font-size: 12px;">المجموعة ${m.groupId} | جولة ${m.round}</span>
+                    <span class="badge ghost">منتظرة</span>
                 </div>
                 ${refereeSelect}
             </div>
@@ -813,32 +856,41 @@ const renderMatchesList = () => {
 
 const renderStandings = () => {
     const tbody = document.querySelector('#standings-table tbody');
+    if(!tbody) return;
     tbody.innerHTML = '';
     
     const stats = calculateTeamStats(state.teams, state.matches);
-    const limit = window.dashboardExpandedStandings ? stats.length : 3;
+    const limit = window.dashboardExpandedStandings ? stats.length : 5;
     
     stats.slice(0, limit).forEach((s, index) => {
+        const isTop = index < 3;
         tbody.innerHTML += `
             <tr style="cursor: pointer;" onclick="showTeamDetails('${s.team.id}')">
-                <td>${index + 1}</td>
-                <td><strong>${s.team.name}</strong></td>
+                <td>
+                    <span class="badge ${isTop ? 'primary' : 'ghost'}">${index + 1}</span>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 32px; height: 32px; background: var(--bg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px;">🛡️</div>
+                        <strong>${s.team.name}</strong>
+                    </div>
+                </td>
                 <td>${s.played}</td>
                 <td>${s.wins}</td>
                 <td>${s.losses}</td>
                 <td>${(s.winRate * 100).toFixed(1)}%</td>
                 <td>${s.cappedPointDiff}</td>
                 <td>${(s.pointRatio * 100).toFixed(1)}%</td>
-                <td><strong class="badge bb" style="font-size: 12px;">${(s.finalScore * 100).toFixed(1)}</strong></td>
+                <td><strong class="badge primary" style="font-size: 13px; font-family: 'Outfit';">${(s.finalScore * 100).toFixed(1)}</strong></td>
             </tr>
         `;
     });
 
     if (stats.length > limit) {
         tbody.innerHTML += `
-            <tr class="expand-row">
+            <tr>
                 <td colspan="9" style="text-align: center; padding: 0;">
-                    <button class="btn ghost btn-full" style="border-radius: 0; border: none; color: var(--teal); padding: 12px;" onclick="window.dashboardExpandedStandings = true; updateUI();">عرض باقي الترتيب (${stats.length - limit}+)</button>
+                    <button class="btn ghost btn-full" style="border-radius: 0; border: none; color: var(--primary); padding: 16px;" onclick="window.dashboardExpandedStandings = true; updateUI();">عرض باقي الترتيب (${stats.length - limit}+)</button>
                 </td>
             </tr>
         `;
@@ -1137,19 +1189,23 @@ const renderActiveMatch = () => {
     ['A', 'B'].forEach(side => {
         const rot = match.rotations[side];
         const servingPlayer = rot.onCourt[0]; // Pos 1
-        document.getElementById(`serving-${side.toLowerCase()}`).textContent = servingPlayer ? servingPlayer.name : '--';
-        document.getElementById(`next-sub-${side.toLowerCase()}`).textContent = rot.subs.length > 0 ? rot.subs[0].name : 'لا يوجد';
-
+        
+        const servingEl = document.getElementById(`serving-${side.toLowerCase()}`);
+        if(servingEl) servingEl.textContent = servingPlayer ? servingPlayer.name : '--';
+        
         const courtDiv = document.getElementById(`court-${side.toLowerCase()}`);
+        if(!courtDiv) return;
+
         // Court layout: [Pos 3, Pos 2, Pos 4, Pos 1] (Standard grid view)
         // Indices in onCourt: [0=Pos1, 1=Pos2, 2=Pos3, 3=Pos4]
         const displayOrder = [2, 1, 3, 0]; 
         courtDiv.innerHTML = displayOrder.map(idx => {
             const p = rot.onCourt[idx];
+            const isServing = idx === 0;
             return `
-                <div class="court-pos ${idx === 0 ? 'serving' : ''}">
-                    <small>مركز ${idx+1}</small>
-                    <b>${p ? p.name.split(' ')[0] : '--'}</b>
+                <div class="court-player" style="${isServing ? 'border-color: var(--primary); background: var(--primary-glow);' : ''}">
+                    <div style="font-size: 10px; color: var(--text-dim); mb-1">مركز ${idx+1}</div>
+                    <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p ? p.name.split(' ')[0] : '--'}</div>
                 </div>
             `;
         }).join('');
@@ -1158,13 +1214,16 @@ const renderActiveMatch = () => {
     const matchStatus = document.querySelector('.match-status');
     if (matchStatus) {
         matchStatus.innerHTML = `
-            <div>الأشواط</div>
-            <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">الأشواط</div>
+            <div style="font-size: 32px; font-weight: 900; color: var(--primary); font-family: 'Outfit';">
                 ${match.score.setsA || 0} - ${match.score.setsB || 0}
             </div>
-            ${(match.score.setsA >= 2 || match.score.setsB >= 2) ? '<div style="color:var(--secondary);margin-top:10px;">انتهت المباراة</div>' : ''}
         `;
     }
+};
+
+const showMatchDetails = (matchId) => {
+    document.querySelector('.nav-item[data-view="history"]').click();
 };
 
 const logMatchEvent = (match, msg) => {
