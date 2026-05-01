@@ -10,6 +10,14 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div id="app-loader" style="position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s var(--ease-out);">
+        <div class="logo-icon" style="width: 80px; height: 80px; background: var(--primary); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--bg); font-size: 48px; box-shadow: 0 0 40px var(--primary-glow); margin-bottom: 24px; animation: pulse 2s infinite;">X</div>
+        <div style="font-family: 'Outfit'; font-weight: 800; letter-spacing: 4px; color: var(--text);">XURA ENGINE</div>
+        <div style="width: 200px; height: 2px; background: var(--border-bright); margin-top: 24px; border-radius: 1px; overflow: hidden;">
+            <div id="loader-progress" style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s ease;"></div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Top Bar -->
         <header class="topbar">
@@ -337,8 +345,25 @@
 
                 <section id="view-admin-mgmt" class="view-section">
                     <div class="sec-title">
-                        <span>إدارة الجداول</span>
+                        <span>إدارة الجداول والبيانات</span>
                     </div>
+                    
+                    <!-- New Summary Card -->
+                    <div class="quick-stats grid-3" style="margin-bottom: 32px;">
+                        <div class="card" style="padding: 20px;">
+                            <div style="color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 8px;">إجمالي الأندية</div>
+                            <div id="admin-stat-teams" style="font-size: 24px; font-weight: 900;">0</div>
+                        </div>
+                        <div class="card" style="padding: 20px;">
+                            <div style="color: var(--secondary); font-size: 14px; font-weight: 800; margin-bottom: 8px;">إجمالي اللاعبين</div>
+                            <div id="admin-stat-players" style="font-size: 24px; font-weight: 900;">0</div>
+                        </div>
+                        <div class="card" style="padding: 20px;">
+                            <div style="color: var(--warning); font-size: 14px; font-weight: 800; margin-bottom: 8px;">المباريات المكتملة</div>
+                            <div id="admin-stat-matches" style="font-size: 24px; font-weight: 900;">0</div>
+                        </div>
+                    </div>
+
                     <div class="card">
                         <div class="card-header">
                             <h2>الفرق</h2>
@@ -419,16 +444,22 @@
                         <span>لوحة التحكم التحكيمية</span>
                     </div>
                     
-                    <div class="card" style="max-width: 600px; margin: 0 auto 32px;">
+                    <div class="card" style="max-width: 600px; margin: 0 auto 32px; background: linear-gradient(135deg, var(--surface), var(--bg-subtle));">
                         <div class="card-header">
-                            <h2>اختيار مباراة جارية</h2>
+                            <div>
+                                <h2>اختيار مباراة جارية</h2>
+                                <p>اختر المباراة التي تترأس تحكيمها حالياً</p>
+                            </div>
                         </div>
-                        <select id="referee-match-select" class="large-select">
+                        <select id="referee-match-select" class="large-select" style="border: 1px solid var(--primary-glow); background: rgba(0,245,212,0.05);">
                             <option value="">اختر المباراة لبدء التسجيل...</option>
                         </select>
                     </div>
 
                     <div id="active-match-board" class="match-board hidden">
+                        <div id="ref-sync-indicator" style="text-align: center; font-size: 11px; color: var(--primary); margin-bottom: 10px; opacity: 0; transition: opacity 0.3s;">
+                            <span>●</span> جاري حفظ النتيجة سحابياً...
+                        </div>
                         <div class="scoreboard">
                             <div class="team-score" id="board-team-a">
                                 <h2 class="team-name">فريق أ</h2>
@@ -571,6 +602,99 @@
                 <button id="btn-cancel-lineup" class="btn ghost">إلغاء</button>
                 <button id="btn-save-lineup" class="btn primary">تأكيد وبدء الشوط 🔥</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Edit Team Modal -->
+    <div id="edit-team-modal" class="modal">
+        <div class="modal-content">
+            <div class="card-header">
+                <h2>تعديل بيانات الفريق</h2>
+            </div>
+            <form id="edit-team-form" class="form-layout">
+                <input type="hidden" id="edit-team-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>اسم الفريق</label>
+                        <input type="text" id="edit-team-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>المنطقة / النادي</label>
+                        <input type="text" id="edit-team-region" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>الدوري / الفئة</label>
+                    <select id="edit-team-league" required>
+                        <option value="U8_BOYS">تحت 8 سنوات - بنين</option>
+                        <option value="U8_GIRLS">تحت 8 سنوات - بنات</option>
+                        <option value="U9_BOYS">تحت 9 سنوات - بنين</option>
+                        <option value="U9_GIRLS">تحت 9 سنوات - بنات</option>
+                        <option value="U10_BOYS">تحت 10 سنوات - بنين</option>
+                        <option value="U10_GIRLS">تحت 10 سنوات - بنات</option>
+                        <option value="U11_BOYS">تحت 11 سنة - بنين</option>
+                        <option value="U11_GIRLS">تحت 11 سنة - بنات</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>شعار الفريق (Logo)</label>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <img id="edit-team-logo-preview" src="" style="width: 64px; height: 64px; border-radius: 12px; object-fit: cover; display: none; border: 1px solid var(--border-bright);">
+                        <input type="file" id="edit-team-logo-input" accept="image/*">
+                    </div>
+                </div>
+                <div style="margin-top: 32px; display: flex; justify-content: flex-end; gap: 16px;">
+                    <button type="button" class="btn ghost" onclick="document.getElementById('edit-team-modal').classList.remove('open')">إلغاء</button>
+                    <button type="submit" class="btn primary">حفظ التعديلات ✨</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Player Modal -->
+    <div id="edit-player-modal" class="modal">
+        <div class="modal-content">
+            <div class="card-header">
+                <h2>تعديل بيانات اللاعب</h2>
+            </div>
+            <form id="edit-player-form" class="form-layout">
+                <input type="hidden" id="edit-player-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>اسم اللاعب</label>
+                        <input type="text" id="edit-player-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>العمر</label>
+                        <input type="number" id="edit-player-age" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>الطول (سم)</label>
+                        <input type="number" id="edit-player-height" required>
+                    </div>
+                    <div class="form-group">
+                        <label>مدى الذراعين (سم)</label>
+                        <input type="number" id="edit-player-reach" required>
+                    </div>
+                    <div class="form-group">
+                        <label>الارتقاء (سم)</label>
+                        <input type="number" id="edit-player-jump" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>صورة اللاعب الشخصية</label>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <img id="edit-player-photo-preview" src="" style="width: 80px; height: 100px; border-radius: 8px; object-fit: cover; display: none; border: 1px solid var(--border-bright);">
+                        <input type="file" id="edit-player-photo-input" accept="image/*">
+                    </div>
+                </div>
+                <div style="margin-top: 32px; display: flex; justify-content: flex-end; gap: 16px;">
+                    <button type="button" class="btn ghost" onclick="document.getElementById('edit-player-modal').classList.remove('open')">إلغاء</button>
+                    <button type="submit" class="btn primary">حفظ التغييرات ✨</button>
+                </div>
+            </form>
         </div>
     </div>
 

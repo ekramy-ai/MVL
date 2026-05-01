@@ -26,6 +26,7 @@ const init = async () => {
     setupActions();
     setupRefereeBoard();
     setupSearch();
+    setupEditModals();
     
     // Initial empty render
     renderTeamsSelect();
@@ -144,6 +145,18 @@ const init = async () => {
             console.error("Data loading failed", e);
         }
     }
+
+    // Hide Loader
+    const loader = document.getElementById('app-loader');
+    const progressBar = document.getElementById('loader-progress');
+    if (progressBar) progressBar.style.width = '100%';
+    
+    setTimeout(() => {
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.remove(), 500);
+        }
+    }, 500);
 };
 
 const updateDBStatus = (success = null) => {
@@ -590,6 +603,17 @@ const updateUI = () => {
     renderAdminPlayersTable();
     renderPublicTeamsList();
     renderPlayersDirectory();
+    updateAdminStats();
+};
+
+const updateAdminStats = () => {
+    const statTeams = document.getElementById('admin-stat-teams');
+    const statPlayers = document.getElementById('admin-stat-players');
+    const statMatches = document.getElementById('admin-stat-matches');
+    
+    if(statTeams) statTeams.textContent = state.teams.length;
+    if(statPlayers) statPlayers.textContent = state.players.length;
+    if(statMatches) statMatches.textContent = state.matches.filter(m => m.status === 'completed').length;
 };
 
 const renderPublicTeamsList = () => {
@@ -601,7 +625,9 @@ const renderPublicTeamsList = () => {
     container.innerHTML = leagueTeams.map(t => `
         <div class="mc" onclick="showTeamDetails('${t.id}')">
             <div style="display: flex; align-items: center; gap: 20px;">
-                <div style="width: 50px; height: 50px; background: var(--bg-subtle); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid var(--border-bright);">🛡️</div>
+                <div style="width: 50px; height: 50px; background: var(--bg-subtle); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid var(--border-bright); overflow: hidden;">
+                    ${t.logo ? `<img src="${t.logo}" style="width: 100%; height: 100%; object-fit: cover;">` : '🛡️'}
+                </div>
                 <div>
                     <div class="mtn">${t.name}</div>
                     <div style="font-size: 13px; color: var(--text-dim); margin-top: 4px;">
@@ -712,7 +738,14 @@ const renderPlayersDirectory = () => {
         const team = state.teams.find(t => t.id === p.teamId);
         return `
             <tr>
-                <td><strong>${p.name}</strong></td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--bg-subtle); border: 1px solid var(--border-bright); overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+                            ${p.photo ? `<img src="${p.photo}" style="width: 100%; height: 100%; object-fit: cover;">` : '👤'}
+                        </div>
+                        <strong>${p.name}</strong>
+                    </div>
+                </td>
                 <td>${team ? team.name : '-'}</td>
                 <td>${p.age} سنة</td>
                 <td>${p.height} سم</td>
@@ -1199,7 +1232,17 @@ const setupRefereeBoard = () => {
                     logMatchEvent(match, `🌟 المباراة انتهت!`);
                 }
 
-                await DB.updateMatch(match.id, { score: match.score, rotations: match.rotations });
+                const syncIndicator = document.getElementById('ref-sync-indicator');
+                if(syncIndicator) syncIndicator.style.opacity = "1";
+
+                await DB.updateMatch(match.id, { 
+                    score: match.score, 
+                    rotations: match.rotations,
+                    lastUpdate: Date.now() 
+                });
+                
+                if(syncIndicator) setTimeout(() => { syncIndicator.style.opacity = "0"; }, 800);
+                
                 renderActiveMatch();
             }
         });
@@ -1404,18 +1447,26 @@ const showTeamDetails = (teamId) => {
 
     container.innerHTML = `
         <div class="card" style="border-top: 4px solid var(--primary);">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; gap: 20px; flex-wrap: wrap;">
                 <div style="display: flex; gap: 24px; align-items: center;">
-                    <div style="width: 80px; height: 80px; background: var(--bg-subtle); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 40px; border: 1px solid var(--border-bright);">🛡️</div>
+                    <div style="width: 100px; height: 100px; background: var(--bg-subtle); border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 48px; border: 2px solid var(--border-bright); overflow: hidden; box-shadow: var(--shadow-md);">
+                        ${team.logo ? `<img src="${team.logo}" style="width: 100%; height: 100%; object-fit: cover;">` : '🛡️'}
+                    </div>
                     <div>
                         <h2 style="font-size: 32px; font-weight: 900; margin-bottom: 8px;">${team.name}</h2>
                         <p style="color: var(--text-dim); font-size: 16px;">النادي: ${team.region || 'غير محدد'} | المرحلة: ${team.league || '-'}</p>
-                        <div class="badge primary mt-2">PPS ${team.pps?.toFixed(1) || '0.0'}</div>
+                        <div style="display: flex; gap: 10px; margin-top: 12px;">
+                            <div class="badge primary">PPS ${team.pps?.toFixed(1) || '0.0'}</div>
+                            <div class="badge ghost">${teamPlayers.length} لاعب</div>
+                        </div>
                     </div>
                 </div>
-                ${isAdmin ? `
-                    <button class="btn ghost btn-sm" onclick="editTeamPrompt('${team.id}')">تعديل بيانات النادي ⚙️</button>
-                ` : ''}
+                <div style="display: flex; gap: 12px;">
+                    ${isAdmin ? `
+                        <button class="btn ghost btn-sm" onclick="editTeamPrompt('${team.id}')">تعديل بيانات النادي ⚙️</button>
+                    ` : ''}
+                    <button class="btn primary btn-sm" onclick="window.print()">طباعة الكشوفات 🖨️</button>
+                </div>
             </div>
 
             <div class="sec-title" style="margin-top: 40px;">
@@ -1437,7 +1488,14 @@ const showTeamDetails = (teamId) => {
                     <tbody>
                         ${teamPlayers.map(p => `
                             <tr>
-                                <td><strong>${p.name}</strong></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--bg-subtle); border: 1px solid var(--border-bright); overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                                            ${p.photo ? `<img src="${p.photo}" style="width: 100%; height: 100%; object-fit: cover;">` : '👤'}
+                                        </div>
+                                        <strong>${p.name}</strong>
+                                    </div>
+                                </td>
                                 <td>${p.age} سنة</td>
                                 <td>${p.height} سم</td>
                                 <td>${p.jump || '-'} سم</td>
@@ -1460,32 +1518,136 @@ const showTeamDetails = (teamId) => {
 
 window.showTeamDetails = showTeamDetails;
 
-window.editTeamPrompt = async (id) => {
-    const team = state.teams.find(t => t.id === id);
-    if (!team) return;
-    const newName = prompt('اسم الفريق الجديد:', team.name);
-    const newRegion = prompt('المنطقة الجديدة:', team.region || '');
-    if (newName) {
-        await DB.updateTeam(id, { name: newName, region: newRegion });
-        await loadData();
-        showTeamDetails(id);
-        updateUI();
+const setupEditModals = () => {
+    // Team Edit Form
+    const editTeamForm = document.getElementById('edit-team-form');
+    if (editTeamForm) {
+        editTeamForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-team-id').value;
+            const logoPreview = document.getElementById('edit-team-logo-preview');
+            
+            const updatedData = {
+                name: document.getElementById('edit-team-name').value,
+                region: document.getElementById('edit-team-region').value,
+                league: document.getElementById('edit-team-league').value,
+                logo: logoPreview.src.startsWith('data:') ? logoPreview.src : (logoPreview.style.display === 'none' ? null : logoPreview.src)
+            };
+            
+            await DB.updateTeam(id, updatedData);
+            await loadData();
+            document.getElementById('edit-team-modal').classList.remove('open');
+            showTeamDetails(id);
+            updateUI();
+            alert('تم تحديث بيانات الفريق بنجاح');
+        });
+    }
+
+    const teamLogoInput = document.getElementById('edit-team-logo-input');
+    if (teamLogoInput) {
+        teamLogoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const preview = document.getElementById('edit-team-logo-preview');
+                    preview.src = event.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Player Edit Form
+    const editPlayerForm = document.getElementById('edit-player-form');
+    if (editPlayerForm) {
+        editPlayerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-player-id').value;
+            const photoPreview = document.getElementById('edit-player-photo-preview');
+            
+            const player = state.players.find(p => p.id === id);
+            if (!player) return;
+
+            const updatedData = {
+                ...player,
+                name: document.getElementById('edit-player-name').value,
+                age: parseInt(document.getElementById('edit-player-age').value),
+                height: parseInt(document.getElementById('edit-player-height').value),
+                reach: parseInt(document.getElementById('edit-player-reach').value),
+                jump: parseInt(document.getElementById('edit-player-jump').value),
+                photo: photoPreview.src.startsWith('data:') ? photoPreview.src : (photoPreview.style.display === 'none' ? null : photoPreview.src)
+            };
+            
+            updatedData.pps = calculatePlayerPPS(updatedData, state.players);
+            
+            await DB.updatePlayer(id, updatedData);
+            await loadData();
+            document.getElementById('edit-player-modal').classList.remove('open');
+            showTeamDetails(player.teamId);
+            updateUI();
+            alert('تم تحديث بيانات اللاعب بنجاح');
+        });
+    }
+
+    const playerPhotoInput = document.getElementById('edit-player-photo-input');
+    if (playerPhotoInput) {
+        playerPhotoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const preview = document.getElementById('edit-player-photo-preview');
+                    preview.src = event.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
     }
 };
 
-window.editPlayerPrompt = async (id) => {
+window.editTeamPrompt = (id) => {
+    const team = state.teams.find(t => t.id === id);
+    if (!team) return;
+
+    document.getElementById('edit-team-id').value = team.id;
+    document.getElementById('edit-team-name').value = team.name;
+    document.getElementById('edit-team-region').value = team.region || '';
+    document.getElementById('edit-team-league').value = team.league || 'U10_BOYS';
+    
+    const preview = document.getElementById('edit-team-logo-preview');
+    if (team.logo) {
+        preview.src = team.logo;
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+
+    document.getElementById('edit-team-modal').classList.add('open');
+};
+
+window.editPlayerPrompt = (id) => {
     const p = state.players.find(p => p.id === id);
     if (!p) return;
-    const newName = prompt('اسم اللاعب الجديد:', p.name);
-    const newAge = prompt('العمر الجديد:', p.age);
-    if (newName && newAge) {
-        const updated = { ...p, name: newName, age: parseInt(newAge) };
-        updated.pps = calculatePlayerPPS(updated, state.players);
-        await DB.updatePlayer(id, updated);
-        await loadData();
-        showTeamDetails(p.teamId);
-        updateUI();
+
+    document.getElementById('edit-player-id').value = p.id;
+    document.getElementById('edit-player-name').value = p.name;
+    document.getElementById('edit-player-age').value = p.age;
+    document.getElementById('edit-player-height').value = p.height;
+    document.getElementById('edit-player-reach').value = p.reach || '';
+    document.getElementById('edit-player-jump').value = p.jump || '';
+    
+    const preview = document.getElementById('edit-player-photo-preview');
+    if (p.photo) {
+        preview.src = p.photo;
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
     }
+
+    document.getElementById('edit-player-modal').classList.add('open');
 };
 
 const showMatchDetails = (matchId) => {
