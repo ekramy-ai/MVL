@@ -1,5 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { 
+    getFirestore, 
+    collection, 
+    addDoc, 
+    getDocs, 
+    updateDoc, 
+    doc, 
+    onSnapshot, 
+    deleteDoc, 
+    setDoc 
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // Real Firebase config provided by the user
 const firebaseConfig = {
@@ -16,11 +26,21 @@ let app, db;
 try {
     app = initializeApp(firebaseConfig);
     db = getFirestore(app);
-    console.log("Firebase initialized successfully");
+    console.log("✅ Firebase initialized successfully");
 } catch (error) {
-    console.warn("Firebase initialization failed. Using local storage fallback.", error);
+    console.warn("❌ Firebase initialization failed. Using local storage fallback.", error);
     app = null;
     db = null;
 }
 
-export { db };
+export { 
+    db, 
+    collection, 
+    addDoc, 
+    getDocs, 
+    updateDoc, 
+    doc, 
+    onSnapshot, 
+    deleteDoc, 
+    setDoc 
+};

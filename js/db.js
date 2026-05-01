@@ -1,5 +1,4 @@
-import { db } from './firebaseConfig.js';
-import { collection, addDoc, getDocs, updateDoc, doc, onSnapshot, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { db, collection, addDoc, getDocs, updateDoc, doc, onSnapshot, deleteDoc, setDoc } from './firebaseConfig.js';
 
 // In-memory fallback using localStorage
 let localTeams = JSON.parse(localStorage.getItem('mvl_teams') || '[]');
