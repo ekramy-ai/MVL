@@ -1135,40 +1135,6 @@ const renderLiveMatches = (dashboardMatches) => {
     });
 };
 
-const showTeamDetails = (teamId) => {
-    const team = state.teams.find(t => t.id === teamId);
-    if (!team) return;
-    
-    const teamPlayers = state.players.filter(p => p.teamId === teamId);
-    const container = document.getElementById('team-details-content');
-    
-    // Switch view
-    document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-    document.getElementById('view-team-details').classList.add('active');
-    
-    container.innerHTML = `
-        <div class="card" style="border-top: 4px solid var(--teal);">
-            <div class="card-header">
-                <h2>${team.name}</h2>
-                <span class="badge bb">PPS: ${team.pps?.toFixed(1) || '0.0'}</span>
-            </div>
-            <p style="color: var(--text2); margin-bottom: 10px;">المنطقة: ${team.region || 'غير محدد'}</p>
-        </div>
-        
-        <div class="sec-title">قائمة اللاعبين (${teamPlayers.length})</div>
-        <div class="grid-2">
-            ${teamPlayers.map(p => `
-                <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: bold; color: var(--text);">${p.name}</div>
-                        <div style="font-size: 11px; color: var(--text2);">العمر: ${p.age} | الطول: ${p.height}سم</div>
-                    </div>
-                    <div class="badge ghost">PPS: ${p.pps?.toFixed(1) || '0.0'}</div>
-                </div>
-            `).join('')}
-        </div>
-    `;
-};
 
 // --- Referee Dashboard ---
 const setupRefereeBoard = () => {
