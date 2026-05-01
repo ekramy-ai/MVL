@@ -20,13 +20,14 @@ let state = {
 
 // --- Initialization ---
 const init = async () => {
-    // 1. Setup UI Listeners immediately (Interactive UI)
-    setupNavigation();
-    setupForms();
-    setupActions();
-    setupRefereeBoard();
-    setupSearch();
-    setupEditModals();
+    try {
+        // 1. Setup UI Listeners immediately (Interactive UI)
+        setupNavigation();
+        setupForms();
+        setupActions();
+        setupRefereeBoard();
+        setupSearch();
+        setupEditModals();
     
     // Initial empty render
     renderTeamsSelect();
@@ -130,8 +131,21 @@ const init = async () => {
     }
 
     if (db) {
-        DB.subscribe('teams', (data) => { state.teams = data; updateUI(); });
-        DB.subscribe('players', (data) => { state.players = data; updateUI(); });
+        // Load initial data once to get referees and settings
+        await loadData();
+        
+        DB.subscribe('teams', (data) => { 
+            state.teams = data; 
+            // Recalculate PPS for teams in state
+            state.teams.forEach(t => { t.pps = calculateTeamPPS(t.id, state.players); });
+            updateUI(); 
+        });
+        DB.subscribe('players', (data) => { 
+            state.players = data; 
+            // Recalculate PPS for teams when players change
+            state.teams.forEach(t => { t.pps = calculateTeamPPS(t.id, state.players); });
+            updateUI(); 
+        });
         DB.subscribe('matches', (data) => { state.matches = data; updateUI(); });
         updateDBStatus(true);
     } else {
@@ -146,17 +160,21 @@ const init = async () => {
         }
     }
 
-    // Hide Loader
-    const loader = document.getElementById('app-loader');
-    const progressBar = document.getElementById('loader-progress');
-    if (progressBar) progressBar.style.width = '100%';
-    
-    setTimeout(() => {
-        if (loader) {
-            loader.style.opacity = '0';
-            setTimeout(() => loader.remove(), 500);
-        }
-    }, 500);
+    } catch (e) {
+        console.error("Initialization failed", e);
+    } finally {
+        // Always Hide Loader
+        const loader = document.getElementById('app-loader');
+        const progressBar = document.getElementById('loader-progress');
+        if (progressBar) progressBar.style.width = '100%';
+        
+        setTimeout(() => {
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 500);
+            }
+        }, 800);
+    }
 };
 
 const updateDBStatus = (success = null) => {
@@ -966,7 +984,7 @@ const renderPots = () => {
             ul.innerHTML += `
                 <li onclick="showTeamDetails('${t.id}')" style="cursor:pointer;">
                     <span>${t.name}</span> 
-                    <span class="badge ${index===0?'primary':index===1?'ghost':'ghost'}" style="font-family:'Outfit';">PPS ${t.pps.toFixed(1)}</span>
+                    <span class="badge ${index===0?'primary':index===1?'ghost':'ghost'}" style="font-family:'Outfit';">PPS ${t.pps?.toFixed(1) || '0.0'}</span>
                 </li>`;
         });
     });
@@ -982,7 +1000,7 @@ const renderGroupsAndMatches = (groups = null) => {
             <div class="card">
                 <div class="card-header"><h3>المجموعة ${i+1}</h3></div>
                 <ul class="team-list">
-                    ${g.map(t => `<li><span>${t.name}</span> <span class="badge ghost">PPS: ${t.pps.toFixed(1)}</span></li>`).join('')}
+                    ${g.map(t => `<li><span>${t.name}</span> <span class="badge ghost">PPS: ${t.pps?.toFixed(1) || '0.0'}</span></li>`).join('')}
                 </ul>
             </div>
         `).join('');
