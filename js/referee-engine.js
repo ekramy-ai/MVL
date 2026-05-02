@@ -181,8 +181,13 @@ window.openMatch = async (matchId) => {
     document.getElementById('team-a-sets-lbl').textContent = nameA;
     document.getElementById('team-b-sets-lbl').textContent = nameB;
 
-    renderBoard();
-    show('scr-live');
+    if (!liveScore.lineupA || !liveScore.lineupB) {
+        await renderLineupForm();
+        show('scr-lineup');
+    } else {
+        renderBoard();
+        show('scr-live');
+    }
 
     // Real-time listener
     if (unsub) unsub();
@@ -210,6 +215,68 @@ window.openMatch = async (matchId) => {
   }
 };
 
+// ── LINEUP SELECTION ──
+window.renderLineupForm = async () => {
+    const container = document.getElementById('lineup-form-container');
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">جاري تحميل اللاعبين...</div>';
+    
+    try {
+        const teamAId = currentMatch.teamA?.id || currentMatch.teamA;
+        const teamBId = currentMatch.teamB?.id || currentMatch.teamB;
+        
+        const snap = await getDocs(collection(db, 'players'));
+        const players = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        const playersA = players.filter(p => p.teamId === teamAId);
+        const playersB = players.filter(p => p.teamId === teamBId);
+        
+        const nameA = currentMatch.teamA?.name || currentMatch.teamAName || 'فريق أ';
+        const nameB = currentMatch.teamB?.name || currentMatch.teamBName || 'فريق ب';
+        
+        let html = `
+          <div class="card" style="margin-bottom:10px">
+            <h3 style="color:var(--teal);margin-bottom:10px;font-size:12px">${nameA}</h3>
+            <div id="sel-players-a" style="display:flex;flex-wrap:wrap;gap:6px">
+              ${playersA.map(p => `
+                <label style="display:flex;align-items:center;gap:4px;background:var(--surface2);padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer">
+                  <input type="checkbox" value="${p.id}" data-name="${p.name}"> ${p.name}
+                </label>
+              `).join('')}
+              ${playersA.length === 0 ? '<div style="font-size:10px;color:var(--muted)">لا يوجد لاعبين مسجلين</div>' : ''}
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:10px">
+            <h3 style="color:var(--amber);margin-bottom:10px;font-size:12px">${nameB}</h3>
+            <div id="sel-players-b" style="display:flex;flex-wrap:wrap;gap:6px">
+              ${playersB.map(p => `
+                <label style="display:flex;align-items:center;gap:4px;background:var(--surface2);padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer">
+                  <input type="checkbox" value="${p.id}" data-name="${p.name}"> ${p.name}
+                </label>
+              `).join('')}
+              ${playersB.length === 0 ? '<div style="font-size:10px;color:var(--muted)">لا يوجد لاعبين مسجلين</div>' : ''}
+            </div>
+          </div>
+        `;
+        container.innerHTML = html;
+    } catch(e) {
+        container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red)">فشل تحميل اللاعبين.</div>';
+    }
+};
+
+window.saveLineup = async () => {
+    const chkA = Array.from(document.querySelectorAll('#sel-players-a input:checked'));
+    const chkB = Array.from(document.querySelectorAll('#sel-players-b input:checked'));
+    
+    if (chkA.length < 4 || chkA.length > 7) { toast('فريق أ: اختر من 4 إلى 7 لاعبين للتشكيل'); return; }
+    if (chkB.length < 4 || chkB.length > 7) { toast('فريق ب: اختر من 4 إلى 7 لاعبين للتشكيل'); return; }
+    
+    liveScore.lineupA = chkA.map(el => ({ id: el.value, name: el.dataset.name }));
+    liveScore.lineupB = chkB.map(el => ({ id: el.value, name: el.dataset.name }));
+    
+    await saveScore();
+    renderBoard();
+    show('scr-live');
+};
+
 // ── RENDER BOARD ──
 function renderBoard() {
   document.getElementById('board-score-a').textContent = liveScore.A;
@@ -222,8 +289,19 @@ function renderBoard() {
 
   const nameA = document.getElementById('board-name-a').textContent;
   const nameB = document.getElementById('board-name-b').textContent;
-  document.getElementById('serving-info').textContent =
-    `الإرسال: ${liveScore.serving === 'A' ? nameA : nameB}`;
+  
+  let servingPlayer = '—';
+  if (liveScore.serving === 'A' && liveScore.lineupA) servingPlayer = liveScore.lineupA[0].name;
+  else if (liveScore.serving === 'B' && liveScore.lineupB) servingPlayer = liveScore.lineupB[0].name;
+  document.getElementById('serving-info').textContent = `المرسل: ${servingPlayer}`;
+
+  const diff = Math.abs(liveScore.A - liveScore.B);
+  if ((liveScore.A >= 25 || liveScore.B >= 25) && diff >= 2) {
+      document.getElementById('set-info').textContent = '✨ الشوط منتهي (اضغط إنهاء الشوط)';
+      document.getElementById('set-info').style.color = 'var(--green)';
+  } else {
+      document.getElementById('set-info').style.color = 'var(--amber)';
+  }
 
   // Events log
   const logEl = document.getElementById('event-log');
@@ -260,8 +338,19 @@ async function saveScore() {
 // ── ADD POINT ──
 window.addPoint = async (side) => {
   if (!currentMatch) return;
+  
+  const oldServing = liveScore.serving;
   liveScore[side]++;
   liveScore.serving = side;
+
+  // Rotation logic: If regaining the serve (side-out)
+  if (oldServing !== side && (liveScore.A > 0 || liveScore.B > 0)) {
+      if (side === 'A' && liveScore.lineupA && liveScore.lineupA.length > 0) {
+          liveScore.lineupA.push(liveScore.lineupA.shift());
+      } else if (side === 'B' && liveScore.lineupB && liveScore.lineupB.length > 0) {
+          liveScore.lineupB.push(liveScore.lineupB.shift());
+      }
+  }
 
   const now = new Date();
   liveScore.events = liveScore.events || [];
@@ -294,16 +383,20 @@ window.endSet = async () => {
 
   toast(`انتهى الشوط ${liveScore.set}! الفائز: ${winnerSide === 'A' ? document.getElementById('board-name-a').textContent : document.getElementById('board-name-b').textContent}`);
 
-  // Check if match over (best of 3 or 5)
-  if (liveScore.setsA === 3 || liveScore.setsB === 3) {
+  // Check if match over (best of 3)
+  if (liveScore.setsA === 2 || liveScore.setsB === 2) {
     await endMatch(); return;
   }
 
   liveScore.set++;
   liveScore.A = 0;
   liveScore.B = 0;
-  renderBoard();
+  liveScore.lineupA = null; // Clear lineup for the new set
+  liveScore.lineupB = null;
+  
   await saveScore();
+  await renderLineupForm();
+  show('scr-lineup');
 };
 
 // ── END MATCH ──

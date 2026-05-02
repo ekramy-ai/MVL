@@ -152,6 +152,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto S
       </div>
     </div>
 
+    <!-- LINEUP SCREEN -->
+    <div class="screen" id="scr-lineup">
+      <div class="hero" style="margin-bottom:10px;padding:12px">
+        <h2 style="font-size:14px">تسجيل تشكيل الشوط</h2>
+        <p style="font-size:10px">الرجاء اختيار ترتيب الإرسال (من 4 إلى 7 لاعبين لكل فريق)</p>
+      </div>
+      <div id="lineup-form-container"></div>
+      <button class="btn btn-primary btn-full" id="btn-save-lineup" onclick="saveLineup()">حفظ التشكيل وبدء الشوط ⚡</button>
+    </div>
+
     <!-- LIVE MATCH SCREEN -->
     <div class="screen" id="scr-live">
       <button class="btn btn-ghost btn-sm" onclick="backToMatches()" style="margin-bottom:10px">← رجوع</button>
