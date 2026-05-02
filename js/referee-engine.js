@@ -172,10 +172,19 @@ window.openMatch = async (matchId) => {
         A: m.score.A || 0, B: m.score.B || 0,
         setsA: m.score.setsA || 0, setsB: m.score.setsB || 0,
         set: m.score.set || 1, serving: m.score.serving || 'A',
-        events: m.score.events || []
+        events: m.score.events || [],
+        lineupA: m.score.lineupA || null,
+        lineupB: m.score.lineupB || null,
+        servesInBlock: m.score.servesInBlock || 0,
+        blocksA: m.score.blocksA || 0,
+        blocksB: m.score.blocksB || 0
       };
     } else {
-      liveScore = { A: 0, B: 0, setsA: 0, setsB: 0, set: 1, serving: 'A', events: [] };
+      liveScore = { 
+        A: 0, B: 0, setsA: 0, setsB: 0, set: 1, 
+        serving: 'A', events: [], lineupA: null, lineupB: null,
+        servesInBlock: 0, blocksA: 0, blocksB: 0
+      };
     }
 
     const nameA = m.teamA?.name || m.teamAName || 'فريق أ';
@@ -295,11 +304,14 @@ function renderBoard() {
 
   const nameA = document.getElementById('board-name-a').textContent;
   const nameB = document.getElementById('board-name-b').textContent;
-  
   let servingPlayer = '—';
-  if (liveScore.serving === 'A' && liveScore.lineupA) servingPlayer = liveScore.lineupA[0].name;
-  else if (liveScore.serving === 'B' && liveScore.lineupB) servingPlayer = liveScore.lineupB[0].name;
-  document.getElementById('serving-info').textContent = `المرسل: ${servingPlayer}`;
+  const sIndex = liveScore.servesInBlock || 0;
+  if (liveScore.serving === 'A' && liveScore.lineupA && liveScore.lineupA.length > sIndex) {
+      servingPlayer = liveScore.lineupA[sIndex].name;
+  } else if (liveScore.serving === 'B' && liveScore.lineupB && liveScore.lineupB.length > sIndex) {
+      servingPlayer = liveScore.lineupB[sIndex].name;
+  }
+  document.getElementById('serving-info').textContent = `المرسل: ${servingPlayer} (الإرسال ${sIndex + 1} من 4)`;
 
   const diff = Math.abs(liveScore.A - liveScore.B);
   if ((liveScore.A >= 25 || liveScore.B >= 25) && diff >= 2) {
@@ -345,16 +357,38 @@ async function saveScore() {
 window.addPoint = async (side) => {
   if (!currentMatch) return;
   
-  const oldServing = liveScore.serving;
-  liveScore[side]++;
-  liveScore.serving = side;
+  // Save previous state for undo
+  const oldState = {
+      serving: liveScore.serving,
+      servesInBlock: liveScore.servesInBlock,
+      blocksA: liveScore.blocksA,
+      blocksB: liveScore.blocksB,
+      lineupA: liveScore.lineupA ? [...liveScore.lineupA] : null,
+      lineupB: liveScore.lineupB ? [...liveScore.lineupB] : null
+  };
 
-  // Rotation logic: If regaining the serve (side-out)
-  if (oldServing !== side && (liveScore.A > 0 || liveScore.B > 0)) {
-      if (side === 'A' && liveScore.lineupA && liveScore.lineupA.length > 0) {
-          liveScore.lineupA.push(liveScore.lineupA.shift());
-      } else if (side === 'B' && liveScore.lineupB && liveScore.lineupB.length > 0) {
-          liveScore.lineupB.push(liveScore.lineupB.shift());
+  liveScore[side]++;
+
+  // Advance serve block logic (independent of who won the point)
+  liveScore.servesInBlock = (liveScore.servesInBlock || 0) + 1;
+  
+  if (liveScore.servesInBlock >= 4) {
+      // Switch serving team
+      liveScore.servesInBlock = 0;
+      if (liveScore.serving === 'A') {
+          liveScore.blocksA = (liveScore.blocksA || 0) + 1;
+          liveScore.serving = 'B';
+          // Rotation for B when they get serve back (if they already served before)
+          if (liveScore.blocksB > 0 && liveScore.lineupB && liveScore.lineupB.length > 0) {
+              liveScore.lineupB.push(liveScore.lineupB.shift());
+          }
+      } else {
+          liveScore.blocksB = (liveScore.blocksB || 0) + 1;
+          liveScore.serving = 'A';
+          // Rotation for A when they get serve back
+          if (liveScore.blocksA > 0 && liveScore.lineupA && liveScore.lineupA.length > 0) {
+              liveScore.lineupA.push(liveScore.lineupA.shift());
+          }
       }
   }
 
@@ -362,7 +396,8 @@ window.addPoint = async (side) => {
   liveScore.events = liveScore.events || [];
   liveScore.events.push({
     side, scoreA: liveScore.A, scoreB: liveScore.B,
-    time: `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`
+    time: `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`,
+    prevState: oldState
   });
 
   renderBoard();
@@ -373,7 +408,19 @@ window.addPoint = async (side) => {
 window.undoPoint = async (side) => {
   if (!currentMatch || liveScore[side] <= 0) return;
   liveScore[side]--;
-  if (liveScore.events && liveScore.events.length) liveScore.events.pop();
+  
+  if (liveScore.events && liveScore.events.length > 0) {
+      const lastEvent = liveScore.events.pop();
+      if (lastEvent.prevState) {
+          liveScore.serving = lastEvent.prevState.serving;
+          liveScore.servesInBlock = lastEvent.prevState.servesInBlock;
+          liveScore.blocksA = lastEvent.prevState.blocksA;
+          liveScore.blocksB = lastEvent.prevState.blocksB;
+          if (lastEvent.prevState.lineupA) liveScore.lineupA = lastEvent.prevState.lineupA;
+          if (lastEvent.prevState.lineupB) liveScore.lineupB = lastEvent.prevState.lineupB;
+      }
+  }
+  
   renderBoard();
   await saveScore();
   toast('↩ تم التراجع');
@@ -399,6 +446,9 @@ window.endSet = async () => {
   liveScore.B = 0;
   liveScore.lineupA = null; // Clear lineup for the new set
   liveScore.lineupB = null;
+  liveScore.servesInBlock = 0;
+  liveScore.blocksA = 0;
+  liveScore.blocksB = 0;
   
   await saveScore();
   await renderLineupForm();
