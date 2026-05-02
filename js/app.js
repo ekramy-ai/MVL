@@ -285,21 +285,43 @@ const updateNavVisibility = () => {
 const setupForms = () => {
     document.getElementById('add-team-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const name = document.getElementById('team-name').value;
-        const region = document.getElementById('team-region').value;
-        const league = document.getElementById('team-league-select').value;
-        
-        await DB.addTeam({ name, region, league, pps: 0 });
+        const logoInput = document.getElementById('team-logo-input');
+        let logo = '';
+        if (logoInput && logoInput.files[0]) logo = await fileToBase64(logoInput.files[0]);
+        const team = {
+            name: document.getElementById('team-name').value,
+            region: document.getElementById('team-region').value,
+            league: document.getElementById('team-league-select').value,
+            color: document.getElementById('team-color')?.value || '#5eead4',
+            coach: document.getElementById('team-coach')?.value || '',
+            venue: document.getElementById('team-venue')?.value || '',
+            notes: document.getElementById('team-notes')?.value || '',
+            logo, pps: 0
+        };
+        await DB.addTeam(team);
         await loadData();
         renderTeamsSelect();
         e.target.reset();
+        const lp = document.getElementById('team-logo-preview');
+        if (lp) lp.innerHTML = '🛡️';
         document.getElementById('team-league-select').value = state.currentLeague;
-        alert('تم إضافة الفريق بنجاح للفئة المختارة');
+        showToast('✅ تم إضافة الفريق بنجاح');
+        setTimeout(() => showPotsResult(), 600);
     });
 
     document.getElementById('add-player-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const teamId = document.getElementById('player-team-select').value;
+        if (!teamId) return;
+        const teamPlayers = state.players.filter(p => p.teamId === teamId);
+        if (teamPlayers.length >= 20) {
+            const w = document.getElementById('player-limit-warning');
+            if (w) w.style.display = 'block';
+            return;
+        }
+        const photoInput = document.getElementById('player-photo-input');
+        let photo = '';
+        if (photoInput && photoInput.files[0]) photo = await fileToBase64(photoInput.files[0]);
         const player = {
             teamId,
             name: document.getElementById('player-name').value,
@@ -307,20 +329,25 @@ const setupForms = () => {
             height: parseInt(document.getElementById('player-height').value),
             reach: parseInt(document.getElementById('player-reach').value),
             jump: parseInt(document.getElementById('player-jump').value),
+            jersey: parseInt(document.getElementById('player-jersey')?.value) || 0,
+            position: document.getElementById('player-position')?.value || '',
+            weight: parseInt(document.getElementById('player-weight')?.value) || 0,
+            photo
         };
-        
-        // Calculate player PPS before adding
         player.pps = calculatePlayerPPS(player, state.players);
-        
         await DB.addPlayer(player);
-        await loadData(); // Reloads and updates team PPS
-        
-        // Update team in DB with new PPS
+        await loadData();
         const team = state.teams.find(t => t.id === teamId);
         if(team) await DB.updateTeam(teamId, { pps: team.pps });
-        
         e.target.reset();
-        alert('تم إضافة اللاعب وحساب مستوى الأداء (PPS) بنجاح');
+        const pp = document.getElementById('player-photo-preview');
+        if (pp) pp.innerHTML = '👤';
+        const w = document.getElementById('player-limit-warning');
+        if (w) w.style.display = 'none';
+        updatePlayerCount(teamId);
+        showToast('✅ تم إضافة اللاعب وحساب PPS');
+        const newCount = state.players.filter(p => p.teamId === teamId).length;
+        if (newCount >= 12) setTimeout(() => showPotsResult(), 800);
     });
 
     const addRefereeForm = document.getElementById('add-referee-form');
@@ -334,18 +361,119 @@ const setupForms = () => {
             await loadData();
             updateUI();
             e.target.reset();
-            alert('تم إضافة الحكم بنجاح');
+            showToast('✅ تم إضافة الحكم بنجاح');
         });
     }
 };
+
+// ── Helpers ──
+const fileToBase64 = (file) => new Promise((res, rej) => {
+    const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file);
+});
+
+const showToast = (msg) => {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg; t.style.opacity = '1';
+    clearTimeout(t._tid); t._tid = setTimeout(() => t.style.opacity = '0', 2500);
+};
+
+window.previewLogo = (input) => {
+    const p = document.getElementById('team-logo-preview');
+    if (!p || !input.files[0]) return;
+    p.innerHTML = `<img src="${URL.createObjectURL(input.files[0])}" style="width:100%;height:100%;object-fit:cover">`;
+};
+
+window.previewPhoto = (input) => {
+    const p = document.getElementById('player-photo-preview');
+    if (!p || !input.files[0]) return;
+    p.innerHTML = `<img src="${URL.createObjectURL(input.files[0])}" style="width:100%;height:100%;object-fit:cover">`;
+};
+
+window.updatePlayerCount = (teamId) => {
+    if (!teamId) return;
+    const count = state.players.filter(p => p.teamId === teamId).length;
+    const badge = document.getElementById('player-count-badge');
+    const warn = document.getElementById('player-limit-warning');
+    const btn = document.getElementById('btn-add-player-submit');
+    if (badge) {
+        badge.textContent = `${count}/20 لاعب`;
+        if (count >= 20) { badge.style.background='var(--red-bg,#450a0a)'; badge.style.color='var(--red,#f87171)'; }
+        else if (count >= 12) { badge.style.background='var(--green-bg,#052e16)'; badge.style.color='var(--green,#4ade80)'; }
+        else { badge.style.background='var(--surface2)'; badge.style.color='var(--text2)'; }
+    }
+    if (warn) warn.style.display = count >= 20 ? 'block' : 'none';
+    if (btn) btn.disabled = count >= 20;
+};
+
+window.ingestTab = (tabId, btn) => {
+    document.querySelectorAll('.ingest-tab').forEach(t => t.style.display = 'none');
+    const tab = document.getElementById(tabId);
+    if (tab) tab.style.display = 'block';
+    document.querySelectorAll('.itab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+};
+
+window.showPotsResult = () => {
+    const area = document.getElementById('pots-result-area');
+    if (!area) return;
+    const leagueTeams = filterByLeague(state.teams);
+    if (!leagueTeams.length) {
+        area.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">لا توجد فرق في هذه الفئة</div>';
+    } else {
+        const pots = clusterTeams(leagueTeams);
+        const colors = ['var(--teal)','var(--amber)','var(--purple,#a78bfa)'];
+        const names = ['المستوى الأول (Pot A)','المستوى الثاني (Pot B)','المستوى الثالث (Pot C)'];
+        area.innerHTML = ['potA','potB','potC'].map((key,i) => {
+            if (!pots[key]?.length) return '';
+            return `<div class="card" style="margin-bottom:10px">
+                <div style="font-size:11px;font-weight:800;color:${colors[i]};margin-bottom:8px">${names[i]} — ${pots[key].length} فريق</div>
+                ${pots[key].map(t => `<div style="display:flex;align-items:center;gap:8px;padding:7px;background:var(--surface3);border-radius:8px;margin-bottom:4px">
+                    <div style="width:24px;height:24px;border-radius:5px;background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+                        ${t.logo ? `<img src="${t.logo}" style="width:100%;height:100%;object-fit:cover">` : '🛡️'}
+                    </div>
+                    <div style="flex:1;font-size:11px;font-weight:700">${t.name}</div>
+                    <div style="font-size:10px;font-weight:900;color:${colors[i]}">${t.pps?.toFixed(1)||'0.0'}</div>
+                    <div style="font-size:9px;color:var(--muted)">${state.players.filter(p=>p.teamId===t.id).length} لاعب</div>
+                </div>`).join('')}
+            </div>`;
+        }).join('');
+    }
+    // Switch to pots tab
+    document.querySelectorAll('.ingest-tab').forEach(t => t.style.display='none');
+    const pt = document.getElementById('tab-pots');
+    if (pt) pt.style.display = 'block';
+    document.querySelectorAll('.itab').forEach(b => b.classList.remove('active'));
+    const allTabs = document.querySelectorAll('.itab');
+    if (allTabs[3]) allTabs[3].classList.add('active');
+};
+
+
 
 // --- Actions ---
 const setupActions = () => {
 
     document.getElementById('btn-cluster-teams').addEventListener('click', () => {
-        renderPots();
-        alert('تم تحديث وتصنيف الفرق حسب المستويات (Pots) للفئة المختارة');
+        showPotsResult();
     });
+
+    // Auto generate teams for testing
+    const btnAutoGenTeams = document.getElementById('btn-auto-gen-teams');
+    if (btnAutoGenTeams) {
+        btnAutoGenTeams.addEventListener('click', async () => {
+            const count = parseInt(document.getElementById('auto-teams-count')?.value) || 8;
+            const teamNames = ['نسور','أسود','فرسان','نجوم','أبطال','صقور','رياح','جبال','بروق','أمواج','ثعالب','ذئاب','فهود','عقبان','طيور','أنمار'];
+            btnAutoGenTeams.disabled = true; btnAutoGenTeams.textContent = 'جاري التوليد...';
+            for (let i = 0; i < count; i++) {
+                const n = teamNames[i % teamNames.length] + (Math.floor(i / teamNames.length) > 0 ? ` ${Math.floor(i / teamNames.length)+1}` : '');
+                await DB.addTeam({ name: n, region: 'تجريبي', league: state.currentLeague, pps: 0 });
+            }
+            await loadData(); renderTeamsSelect(); updateUI();
+            btnAutoGenTeams.disabled = false; btnAutoGenTeams.textContent = '🤖 توليد تلقائي';
+            showToast(`✅ تم توليد ${count} فريق للاختبار`);
+            setTimeout(() => showPotsResult(), 500);
+        });
+    }
 
     document.getElementById('btn-generate-groups').addEventListener('click', async () => {
         const leagueTeams = filterByLeague(state.teams);
@@ -445,9 +573,9 @@ const setupActions = () => {
     
     if (btnAddPlayersFromFile && teamPlayersFileInput) {
         btnAddPlayersFromFile.addEventListener('click', () => {
-            const teamId = document.getElementById('player-team-select').value;
+            const teamId = document.getElementById('quick-player-team-select').value;
             if (!teamId) {
-                alert('الرجاء اختيار الفريق أولاً من القائمة');
+                alert('الرجاء اختيار الفريق أولاً من القائمة المنسدلة أعلاه');
                 return;
             }
 
@@ -468,41 +596,51 @@ const setupActions = () => {
                 if (lines.length === 0) {
                     alert('الملف فارغ أو لا يحتوي على أسماء صالحة');
                     btnAddPlayersFromFile.disabled = false;
-                    btnAddPlayersFromFile.textContent = "إضافة من الملف";
+                    btnAddPlayersFromFile.textContent = "رفع وإضافة اللاعبين";
                     return;
                 }
 
                 let processed = 0;
                 const maxVals = { maxH: 165, maxR: 175, maxJ: 45 };
+                let currentCount = state.players.filter(p => p.teamId === teamId).length;
+                let addedInThisRun = 0;
                 
                 for (const playerName of lines) {
+                    if (currentCount + addedInThisRun >= 20) {
+                        alert(`تم التوقف عن إضافة اللاعبين لأن الفريق وصل للحد الأقصى (20 لاعب). تم إضافة ${addedInThisRun} لاعبين بنجاح.`);
+                        break;
+                    }
                     const player = {
                         teamId: teamId,
                         name: playerName,
-                        league: state.currentLeague, // Added league for easier filtering
+                        league: state.currentLeague,
                         age: Math.floor(Math.random() * (12 - 9 + 1)) + 9,
                         height: Math.floor(Math.random() * (maxVals.maxH - 130 + 1)) + 130,
                         reach: Math.floor(Math.random() * (maxVals.maxR - 140 + 1)) + 140,
-                        jump: Math.floor(Math.random() * (maxVals.maxJ - 20 + 1)) + 20
+                        jump: Math.floor(Math.random() * (maxVals.maxJ - 20 + 1)) + 20,
+                        jersey: Math.floor(Math.random() * 99) + 1
                     };
                     player.pps = calculatePlayerPPS(player, [], maxVals);
                     await DB.addPlayer(player);
                     processed++;
+                    addedInThisRun++;
                 }
 
                 await loadData();
                 const team = state.teams.find(t => t.id === teamId);
                 if(team) await DB.updateTeam(teamId, { pps: team.pps });
                 
-                alert(`نجاح! تم إضافة ${processed} لاعب للفريق.`);
+                showToast(`✅ تم إضافة ${processed} لاعب للفريق.`);
                 btnAddPlayersFromFile.disabled = false;
-                btnAddPlayersFromFile.textContent = "إضافة من الملف";
-                teamPlayersFileInput.value = ''; // clear input
+                btnAddPlayersFromFile.textContent = "رفع وإضافة اللاعبين";
+                teamPlayersFileInput.value = '';
+                updatePlayerCount(teamId);
+                if (currentCount + addedInThisRun >= 12) setTimeout(() => showPotsResult(), 800);
             };
             reader.onerror = () => {
                 alert('حدث خطأ أثناء قراءة الملف');
                 btnAddPlayersFromFile.disabled = false;
-                btnAddPlayersFromFile.textContent = "إضافة من الملف";
+                btnAddPlayersFromFile.textContent = "رفع وإضافة اللاعبين";
             };
             reader.readAsText(file);
         });
@@ -545,50 +683,58 @@ const setupActions = () => {
     const btnGeneratePlayers = document.getElementById('btn-generate-players');
     if (btnGeneratePlayers) {
         btnGeneratePlayers.addEventListener('click', async () => {
-            if (state.teams.length === 0) {
-                alert('لا يوجد فرق حالياً. يرجى إضافة فرق أولاً.');
+            const teamId = document.getElementById('quick-player-team-select').value;
+            if (!teamId) {
+                alert('الرجاء اختيار الفريق أولاً من القائمة المنسدلة أعلاه.');
                 return;
             }
+
+            const team = state.teams.find(t => t.id === teamId);
+            if (!team) return;
+
+            let currentCount = state.players.filter(p => p.teamId === teamId).length;
+            const targetCount = parseInt(document.getElementById('auto-players-count')?.value) || 15;
+            let needed = targetCount - currentCount;
+            if (needed <= 0) {
+                alert('الفريق يحتوي بالفعل على العدد المطلوب من اللاعبين أو أكثر.');
+                return;
+            }
+            if (currentCount + needed > 20) needed = 20 - currentCount;
 
             btnGeneratePlayers.disabled = true;
             const originalText = btnGeneratePlayers.textContent;
             
             try {
-                const playersPerTeam = 15;
                 const maxVals = { maxH: 165, maxR: 175, maxJ: 45 };
                 let processed = 0;
 
-                for (const team of state.teams) {
-                    btnGeneratePlayers.textContent = `جاري توليد لاعبي فريق ${team.name}...`;
-                    
-                    const playerPromises = [];
-                    for(let j = 1; j <= playersPerTeam; j++) {
-                        const player = {
-                            teamId: team.id,
-                            name: `لاعب ${j} - ${team.name}`,
-                            age: Math.floor(Math.random() * 4) + 9,
-                            height: Math.floor(Math.random() * 35) + 130,
-                            reach: Math.floor(Math.random() * 35) + 140,
-                            jump: Math.floor(Math.random() * 25) + 20
-                        };
-                        player.pps = calculatePlayerPPS(player, [], maxVals);
-                        playerPromises.push(DB.addPlayer(player));
-                        processed++;
-                    }
-                    await Promise.all(playerPromises);
+                btnGeneratePlayers.textContent = `جاري التوليد...`;
+                const playerPromises = [];
+                for(let j = 1; j <= needed; j++) {
+                    const player = {
+                        teamId: team.id,
+                        name: `لاعب ${currentCount + j} - ${team.name}`,
+                        age: Math.floor(Math.random() * 4) + 9,
+                        height: Math.floor(Math.random() * 35) + 130,
+                        reach: Math.floor(Math.random() * 35) + 140,
+                        jump: Math.floor(Math.random() * 25) + 20,
+                        jersey: Math.floor(Math.random() * 99) + 1
+                    };
+                    player.pps = calculatePlayerPPS(player, [], maxVals);
+                    playerPromises.push(DB.addPlayer(player));
+                    processed++;
                 }
+                await Promise.all(playerPromises);
                 
-                // Need to update PPS for all teams after adding players
-                for (const team of state.teams) {
-                    const teamPlayers = await DB.getPlayers(); // need fresh players or rely on memory
-                    const tPlayers = teamPlayers.filter(p => p.teamId === team.id);
-                    const newPPS = calculateTeamPPS(team.id, teamPlayers);
-                    await DB.updateTeam(team.id, { pps: newPPS });
-                }
+                await loadData(); // Reloads and updates PPS via recalculation
+                const freshTeam = state.teams.find(t => t.id === team.id);
+                if(freshTeam) await DB.updateTeam(team.id, { pps: freshTeam.pps });
 
-                await loadData();
                 renderTeamsSelect();
-                alert(`نجاح! تم توليد وتوزيع ${processed} لاعب آلياً.`);
+                showToast(`✅ تم إضافة ${processed} لاعب عشوائي لـ ${team.name}`);
+                updatePlayerCount(teamId);
+                
+                setTimeout(() => showPotsResult(), 800);
             } catch (e) {
                 console.error(e);
                 alert('حدث خطأ أثناء التوليد');
@@ -963,13 +1109,15 @@ const renderHistoryTable = () => {
 };
 
 const renderTeamsSelect = () => {
-    const select = document.getElementById('player-team-select');
-    if(!select) return;
+    const s1 = document.getElementById('player-team-select');
+    const s2 = document.getElementById('quick-player-team-select');
     const leagueTeams = filterByLeague(state.teams);
-    select.innerHTML = '<option value="">اختر الفريق...</option>';
+    let html = '<option value="">اختر الفريق...</option>';
     leagueTeams.forEach(t => {
-        select.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+        html += `<option value="${t.id}">${t.name}</option>`;
     });
+    if(s1) s1.innerHTML = html;
+    if(s2) s2.innerHTML = html;
 };
 
 const renderPots = () => {

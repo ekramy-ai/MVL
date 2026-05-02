@@ -226,120 +226,240 @@
 
                 <!-- 2. Data Ingestion View (Admin) -->
                 <section id="view-ingestion" class="view-section">
-                    <div class="sec-title">
-                        <span>إدارة البيانات الأساسية</span>
+                    <div class="sec-title"><span>إدارة البيانات الأساسية</span></div>
+
+                    <!-- Tabs -->
+                    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto">
+                        <button class="itab active" onclick="ingestTab('tab-team',this)">🛡️ إضافة فريق</button>
+                        <button class="itab" onclick="ingestTab('tab-player',this)">👤 إضافة لاعب</button>
+                        <button class="itab" onclick="ingestTab('tab-quick',this)">⚡ عمليات سريعة</button>
+                        <button class="itab" onclick="ingestTab('tab-pots',this)">📊 توزيع المستويات</button>
                     </div>
-                    <div class="grid-2-1">
-                        <div style="display: flex; flex-direction: column; gap: 24px;">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h2>إضافة فريق جديد</h2>
-                                </div>
-                                <form id="add-team-form" class="form-layout">
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label>اسم الفريق</label>
-                                            <input type="text" id="team-name" required placeholder="مثال: نسور النادي">
-                                        </div>
-                                        <div class="form-group">
-                                            <label>المنطقة / النادي</label>
-                                            <input type="text" id="team-region" required placeholder="مثال: القاهرة">
-                                        </div>
-                                        <div class="form-group">
-                                            <label>الدوري / الفئة</label>
-                                            <select id="team-league-select" required>
-                                                <option value="U8_BOYS">تحت 8 سنوات - بنين</option>
-                                                <option value="U8_GIRLS">تحت 8 سنوات - بنات</option>
-                                                <option value="U9_BOYS">تحت 9 سنوات - بنين</option>
-                                                <option value="U9_GIRLS">تحت 9 سنوات - بنات</option>
-                                                <option value="U10_BOYS">تحت 10 سنوات - بنين</option>
-                                                <option value="U10_GIRLS">تحت 10 سنوات - بنات</option>
-                                                <option value="U11_BOYS">تحت 11 سنة - بنين</option>
-                                                <option value="U11_GIRLS">تحت 11 سنة - بنات</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <button type="submit" class="btn primary">إضافة الفريق لقاعدة البيانات</button>
-                                </form>
-                            </div>
 
-                            <div class="card" style="border: 2px dashed var(--primary); background: rgba(var(--primary-rgb), 0.05);">
-                                <div class="card-header">
-                                    <div>
-                                        <h2>مزامنة البيانات السحابية</h2>
-                                        <p>رفع كافة البيانات المحلية (الفرق، اللاعبين، المباريات) إلى Firebase Firestore</p>
+                    <!-- TAB: ADD TEAM -->
+                    <div id="tab-team" class="ingest-tab">
+                        <div class="card">
+                            <div class="card-header"><h2>إضافة فريق جديد</h2></div>
+                            <form id="add-team-form" class="form-layout">
+                                <!-- Logo preview -->
+                                <div style="display:flex;align-items:center;gap:16px;padding:14px;background:rgba(94,234,212,.04);border:1px dashed var(--teal-d);border-radius:12px">
+                                    <div id="team-logo-preview" style="width:72px;height:72px;border-radius:14px;background:var(--surface2);border:2px dashed var(--faint);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0">🛡️</div>
+                                    <div style="flex:1">
+                                        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">شعار الفريق (Logo)</div>
+                                        <input type="file" id="team-logo-input" accept="image/*" style="font-size:11px;width:100%" onchange="previewLogo(this)">
+                                        <div style="font-size:9.5px;color:var(--muted);margin-top:4px">PNG/JPG — يُحفظ كـ Base64</div>
                                     </div>
-                                    <button id="btn-sync-firebase" class="btn primary">مزامنة الآن ☁️</button>
                                 </div>
-                                <div id="sync-status-msg" style="font-size: 13px; margin-top: -10px; color: var(--text-dim);"></div>
-                            </div>
 
-                            <div class="card">
-                                <div class="card-header">
-                                    <h2>إضافة لاعب لفريق</h2>
-                                </div>
-                                <form id="add-player-form" class="form-layout">
+                                <div class="form-row">
                                     <div class="form-group">
-                                        <label>اختيار الفريق</label>
-                                        <select id="player-team-select" required>
-                                            <option value="">اختر من القائمة...</option>
+                                        <label>اسم الفريق *</label>
+                                        <input type="text" id="team-name" required placeholder="مثال: نسور الزمالك">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>النادي / المنطقة *</label>
+                                        <input type="text" id="team-region" required placeholder="مثال: القاهرة">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>الدوري / الفئة *</label>
+                                        <select id="team-league-select" required>
+                                            <option value="U8_BOYS">تحت 8 سنوات - بنين</option>
+                                            <option value="U8_GIRLS">تحت 8 سنوات - بنات</option>
+                                            <option value="U9_BOYS">تحت 9 سنوات - بنين</option>
+                                            <option value="U9_GIRLS">تحت 9 سنوات - بنات</option>
+                                            <option value="U10_BOYS">تحت 10 سنوات - بنين</option>
+                                            <option value="U10_GIRLS">تحت 10 سنوات - بنات</option>
+                                            <option value="U11_BOYS">تحت 11 سنة - بنين</option>
+                                            <option value="U11_GIRLS">تحت 11 سنة - بنات</option>
                                         </select>
                                     </div>
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label>اسم اللاعب</label>
-                                            <input type="text" id="player-name" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>العمر</label>
-                                            <input type="number" id="player-age" min="9" max="12" required>
-                                        </div>
+                                    <div class="form-group">
+                                        <label>لون الفريق</label>
+                                        <input type="color" id="team-color" value="#5eead4" style="height:42px;padding:4px;cursor:pointer">
                                     </div>
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label>الطول (سم)</label>
-                                            <input type="number" id="player-height" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>مدى الذراعين (سم)</label>
-                                            <input type="number" id="player-reach" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>الارتقاء (سم)</label>
-                                            <input type="number" id="player-jump" required>
-                                        </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>المدرب</label>
+                                        <input type="text" id="team-coach" placeholder="اسم المدرب">
                                     </div>
-                                    <button type="submit" class="btn secondary btn-full">إضافة وحساب PPS</button>
-                                </form>
+                                    <div class="form-group">
+                                        <label>الملعب / القاعة</label>
+                                        <input type="text" id="team-venue" placeholder="اسم الملعب">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>ملاحظات</label>
+                                    <input type="text" id="team-notes" placeholder="أي ملاحظات إضافية...">
+                                </div>
+                                <button type="submit" class="btn primary btn-full">➕ إضافة الفريق لقاعدة البيانات</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- TAB: ADD PLAYER -->
+                    <div id="tab-player" class="ingest-tab" style="display:none">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>إضافة لاعب لفريق</h2>
+                                <div id="player-count-badge" style="font-size:10px;padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--text2)">0/20 لاعب</div>
+                            </div>
+                            <form id="add-player-form" class="form-layout">
+                                <div class="form-group">
+                                    <label>الفريق *</label>
+                                    <select id="player-team-select" required onchange="updatePlayerCount(this.value)">
+                                        <option value="">اختر الفريق...</option>
+                                    </select>
+                                </div>
+                                <!-- Photo preview -->
+                                <div style="display:flex;align-items:center;gap:14px;padding:12px;background:rgba(167,139,250,.04);border:1px dashed var(--purple-d);border-radius:12px">
+                                    <div id="player-photo-preview" style="width:60px;height:75px;border-radius:10px;background:var(--surface2);border:2px dashed var(--faint);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;flex-shrink:0">👤</div>
+                                    <div style="flex:1">
+                                        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">صورة اللاعب</div>
+                                        <input type="file" id="player-photo-input" accept="image/*" style="font-size:11px;width:100%" onchange="previewPhoto(this)">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>اسم اللاعب *</label>
+                                        <input type="text" id="player-name" required placeholder="الاسم الكامل">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>رقم القميص</label>
+                                        <input type="number" id="player-jersey" min="1" max="99" placeholder="مثال: 7">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>العمر (9-12) *</label>
+                                        <input type="number" id="player-age" min="9" max="12" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>المركز</label>
+                                        <select id="player-position">
+                                            <option value="">غير محدد</option>
+                                            <option value="setter">محدد (Setter)</option>
+                                            <option value="libero">ليبيرو</option>
+                                            <option value="spiker">ضارب (Spiker)</option>
+                                            <option value="blocker">صاد (Blocker)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>الطول (سم) *</label>
+                                        <input type="number" id="player-height" required min="100" max="200" placeholder="مثال: 145">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>مدى الذراعين (سم) *</label>
+                                        <input type="number" id="player-reach" required min="110" max="220" placeholder="مثال: 158">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>الارتقاء العمودي (سم) *</label>
+                                        <input type="number" id="player-jump" required min="10" max="80" placeholder="مثال: 32">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>الوزن (كغ)</label>
+                                        <input type="number" id="player-weight" min="20" max="100" placeholder="مثال: 40">
+                                    </div>
+                                </div>
+                                <div id="player-limit-warning" style="display:none;background:var(--red-bg,#450a0a);border:1px solid var(--red-d,#dc2626);border-radius:8px;padding:10px;font-size:11px;color:var(--red,#f87171)">
+                                    ⚠️ وصل الفريق للحد الأقصى (20 لاعب). لا يمكن إضافة المزيد.
+                                </div>
+                                <div id="player-min-info" style="font-size:10px;color:var(--muted);padding:6px 0">
+                                    📌 الحد الأدنى 12 لاعب — الحد الأقصى 20 لاعب لكل فريق
+                                </div>
+                                <button type="submit" class="btn secondary btn-full" id="btn-add-player-submit">➕ إضافة وحساب PPS</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- TAB: QUICK OPS -->
+                    <div id="tab-quick" class="ingest-tab" style="display:none">
+                        <!-- Import Teams -->
+                        <div class="card">
+                            <div class="card-header"><h2>📁 استيراد فرق</h2></div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                                <div style="padding:14px;background:rgba(94,234,212,.04);border:1px dashed var(--teal-d);border-radius:12px">
+                                    <div style="font-size:11px;font-weight:800;color:var(--teal);margin-bottom:8px">من ملف نصي</div>
+                                    <div style="font-size:9.5px;color:var(--muted);margin-bottom:8px">كل سطر = اسم فريق</div>
+                                    <input type="file" id="teams-file-input" accept=".txt" style="font-size:11px;margin-bottom:8px;width:100%">
+                                    <button id="btn-generate-teams-from-file" class="btn primary btn-sm" style="width:100%">رفع وإضافة الفرق</button>
+                                </div>
+                                <div style="padding:14px;background:rgba(94,234,212,.04);border:1px dashed var(--teal-d);border-radius:12px">
+                                    <div style="font-size:11px;font-weight:800;color:var(--teal);margin-bottom:8px">توليد تلقائي للاختبار</div>
+                                    <div style="font-size:9.5px;color:var(--muted);margin-bottom:8px">يولّد فرق بأسماء جاهزة</div>
+                                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                                        <label style="font-size:10px;color:var(--text2)">عدد الفرق:</label>
+                                        <input type="number" id="auto-teams-count" value="8" min="2" max="16" style="width:60px;padding:4px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--faint);color:var(--text);font-size:12px">
+                                    </div>
+                                    <button id="btn-auto-gen-teams" class="btn ghost btn-sm" style="width:100%">🤖 توليد تلقائي</button>
+                                </div>
                             </div>
                         </div>
 
-                        <div style="display: flex; flex-direction: column; gap: 24px;">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h2>عمليات سريعة</h2>
+                        <!-- Import Players -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>👥 استيراد لاعبين</h2>
+                                <select id="quick-player-team-select" style="font-size:11px;padding:5px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--faint);color:var(--text)">
+                                    <option value="">اختر الفريق...</option>
+                                </select>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                                <div style="padding:14px;background:rgba(167,139,250,.04);border:1px dashed var(--purple-d,#7c3aed);border-radius:12px">
+                                    <div style="font-size:11px;font-weight:800;color:var(--purple,#a78bfa);margin-bottom:8px">من ملف نصي</div>
+                                    <div style="font-size:9.5px;color:var(--muted);margin-bottom:8px">كل سطر = اسم لاعب</div>
+                                    <input type="file" id="team-players-file-input" accept=".txt" style="font-size:11px;margin-bottom:8px;width:100%">
+                                    <button id="btn-add-players-from-file" class="btn btn-sm" style="width:100%;background:var(--purple-d,#7c3aed)">رفع وإضافة اللاعبين</button>
                                 </div>
-                                <div class="form-layout">
-                                    <div style="padding: 16px; background: rgba(var(--primary-rgb), 0.05); border-radius: 12px; border: 1px dashed var(--primary);">
-                                        <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 13px;">استيراد فرق</label>
-                                        <input type="file" id="teams-file-input" style="font-size: 12px; margin-bottom: 12px; width: 100%;">
-                                        <button id="btn-generate-teams-from-file" class="btn primary btn-sm btn-full">توليد الفرق</button>
+                                <div style="padding:14px;background:rgba(167,139,250,.04);border:1px dashed var(--purple-d,#7c3aed);border-radius:12px">
+                                    <div style="font-size:11px;font-weight:800;color:var(--purple,#a78bfa);margin-bottom:8px">توليد تلقائي للاختبار</div>
+                                    <div style="font-size:9.5px;color:var(--muted);margin-bottom:8px">12–20 لاعب ببيانات عشوائية</div>
+                                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                                        <label style="font-size:10px;color:var(--text2)">عدد اللاعبين:</label>
+                                        <input type="number" id="auto-players-count" value="15" min="12" max="20" style="width:60px;padding:4px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--faint);color:var(--text);font-size:12px">
                                     </div>
-                                    <div style="padding: 16px; background: rgba(var(--primary-rgb), 0.05); border-radius: 12px; border: 1px dashed var(--primary); margin-top: 10px;">
-                                        <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 13px;">استيراد لاعبين للفريق المختار</label>
-                                        <input type="file" id="team-players-file-input" style="font-size: 12px; margin-bottom: 12px; width: 100%;">
-                                        <button id="btn-add-players-from-file" class="btn primary btn-sm btn-full">إضافة لاعبين</button>
-                                    </div>
-                                    <div class="grid-2" style="gap: 10px; margin-top: 10px;">
-                                        <button id="btn-generate-players" class="btn ghost btn-sm">توليد تلقائي 🤖</button>
-                                        <button id="btn-cluster-teams" class="btn ghost btn-sm">توزيع المستويات 📊</button>
-                                    </div>
-                                    <button id="btn-migrate-firebase" class="btn amber btn-full mt-4">مزامنة Firebase ☁️</button>
-                                    <button id="btn-clear-data" class="btn ghost btn-sm btn-full mt-2" style="color: var(--danger);">مسح كل البيانات</button>
+                                    <button id="btn-generate-players" class="btn ghost btn-sm" style="width:100%">🤖 توليد تلقائي</button>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Other ops -->
+                        <div class="card">
+                            <div class="card-header"><h2>⚙️ عمليات أخرى</h2></div>
+                            <div style="display:flex;flex-direction:column;gap:8px">
+                                <div class="card" style="padding:12px;border:2px dashed var(--teal-d);background:rgba(94,234,212,.03);margin-bottom:0">
+                                    <div style="display:flex;justify-content:space-between;align-items:center">
+                                        <div>
+                                            <div style="font-size:12px;font-weight:800;color:var(--teal)">مزامنة البيانات السحابية</div>
+                                            <div style="font-size:10px;color:var(--muted);margin-top:2px">رفع كل البيانات إلى Firebase</div>
+                                        </div>
+                                        <button id="btn-sync-firebase" class="btn primary btn-sm">مزامنة ☁️</button>
+                                    </div>
+                                    <div id="sync-status-msg" style="font-size:11px;margin-top:8px;color:var(--text2)"></div>
+                                </div>
+                                <button id="btn-migrate-firebase" class="btn amber btn-full">مزامنة Firebase ☁️</button>
+                                <button id="btn-cluster-teams" class="btn ghost btn-sm btn-full">📊 توزيع المستويات يدوياً</button>
+                                <button id="btn-clear-data" class="btn ghost btn-sm btn-full" style="color:var(--red,#f87171)">🗑 مسح كل البيانات</button>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- TAB: POTS -->
+                    <div id="tab-pots" class="ingest-tab" style="display:none">
+                        <div id="pots-result-area">
+                            <div style="text-align:center;padding:40px;color:var(--muted);font-size:12px">
+                                أضف فرقاً ولاعبين أولاً ثم اضغط على "عرض التوزيع"
+                            </div>
+                        </div>
+                        <button onclick="showPotsResult()" class="btn primary btn-full" style="margin-top:8px">📊 عرض توزيع المستويات</button>
+                    </div>
+
                 </section>
 
                 <section id="view-admin-mgmt" class="view-section">
