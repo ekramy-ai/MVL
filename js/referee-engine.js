@@ -50,9 +50,20 @@ window.doLogin = async () => {
 
   try {
     // Check referees collection
-    const snap = await getDocs(collection(db, 'referees'));
-    const refs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const found = refs.find(r => r.name === name && r.password === pass);
+    let snap;
+    try { snap = await getDocs(collection(db, 'referees')); } catch(e) { /* offline */ }
+    
+    let found = null;
+    if (snap) {
+        const refs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        found = refs.find(r => r.name === name && r.password === pass);
+    }
+    
+    // If not found in Firebase (or offline), check local storage (unsynced referees)
+    if (!found) {
+        const localRefs = JSON.parse(localStorage.getItem('mvl_referees') || '[]');
+        found = localRefs.find(r => r.name === name && r.password === pass);
+    }
 
     if (found) {
       currentRef = found;
@@ -63,8 +74,15 @@ window.doLogin = async () => {
       toast(`مرحباً ${found.name} 👋`);
     } else {
       // Check admin
-      const settSnap = await getDocs(collection(db, 'settings'));
-      const settings = settSnap.empty ? { adminUsername: 'admin', adminPassword: 'admin' } : settSnap.docs[0].data();
+      let settings = { adminUsername: 'admin', adminPassword: 'admin' };
+      try {
+          const settSnap = await getDocs(collection(db, 'settings'));
+          if (!settSnap.empty) settings = settSnap.docs[0].data();
+      } catch(e) {
+          const localSet = JSON.parse(localStorage.getItem('mvl_settings') || 'null');
+          if (localSet) settings = localSet;
+      }
+      
       if (name === settings.adminUsername && pass === settings.adminPassword) {
         currentRef = { id: 'admin', name: 'المدير', grade: 'Admin' };
         document.getElementById('ref-badge').textContent = 'المدير';
@@ -78,20 +96,8 @@ window.doLogin = async () => {
       }
     }
   } catch (e) {
-    // Fallback: localStorage
-    const localRefs = JSON.parse(localStorage.getItem('mvl_referees') || '[]');
-    const found = localRefs.find(r => r.name === name && r.password === pass);
-    if (found) {
-      currentRef = found;
-      document.getElementById('ref-badge').textContent = found.name;
-      document.getElementById('btn-logout').style.display = 'inline-block';
-      await loadMatches();
-      show('scr-matches');
-      toast(`مرحباً ${found.name} (وضع أوفلاين)`);
-    } else {
-      errEl.style.display = 'block';
-      errEl.textContent = 'فشل الاتصال أو بيانات خاطئة';
-    }
+    errEl.style.display = 'block';
+    errEl.textContent = 'حدث خطأ غير متوقع';
   }
 
   btn.textContent = 'دخول ⚡'; btn.disabled = false;
