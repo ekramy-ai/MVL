@@ -2,77 +2,75 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="theme-color" content="#020617">
     <title>XURA | منصة إدارة البطولات الإحترافية</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="app-loader" style="position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s var(--ease-out);">
-        <div class="logo-icon" style="width: 80px; height: 80px; background: var(--primary); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--bg); font-size: 48px; box-shadow: 0 0 40px var(--primary-glow); margin-bottom: 24px; animation: pulse 2s infinite;">X</div>
-        <div style="font-family: 'Outfit'; font-weight: 800; letter-spacing: 4px; color: var(--text);">XURA ENGINE</div>
-        <div style="width: 200px; height: 2px; background: var(--border-bright); margin-top: 24px; border-radius: 1px; overflow: hidden;">
-            <div id="loader-progress" style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s ease;"></div>
+    <div id="app-loader" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s ease;">
+        <div style="width:64px;height:64px;background:var(--teal-d);border-radius:16px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:36px;margin-bottom:18px;animation:pulse 2s infinite;">⚡</div>
+        <div style="font-family:'Cairo';font-weight:900;letter-spacing:3px;color:var(--teal);font-size:13px;">XURA ENGINE</div>
+        <div style="width:160px;height:2px;background:var(--surface2);margin-top:18px;border-radius:1px;overflow:hidden;">
+            <div id="loader-progress" style="width:0%;height:100%;background:var(--teal-d);transition:width .3s ease;"></div>
         </div>
     </div>
 
     <div class="app-container">
         <!-- Top Bar -->
         <header class="topbar">
-            <div class="brand" onclick="document.querySelector('.nav-item[data-view=\'dashboard\']').click()" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-                <div class="logo-icon" style="width: 40px; height: 40px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--bg); font-size: 24px; box-shadow: 0 0 20px var(--primary-glow);">X</div>
-                <h1 style="margin: 0;">XURA</h1>
+            <div class="brand" onclick="document.querySelector('.nav-item[data-view=\'dashboard\']').click()" style="cursor:pointer">
+                <span style="font-size:18px">⚡</span>
+                <h1>XURA</h1>
             </div>
             <div class="user-controls">
-                <select id="league-selector" class="btn ghost btn-sm" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-bright); padding: 5px 15px; min-width: 180px; font-weight: 800;">
-                    <option value="U8_BOYS">تحت 8 سنوات - بنين</option>
-                    <option value="U8_GIRLS">تحت 8 سنوات - بنات</option>
-                    <option value="U9_BOYS">تحت 9 سنوات - بنين</option>
-                    <option value="U9_GIRLS">تحت 9 سنوات - بنات</option>
-                    <option value="U10_BOYS" selected>تحت 10 سنوات - بنين</option>
-                    <option value="U10_GIRLS">تحت 10 سنوات - بنات</option>
-                    <option value="U11_BOYS">تحت 11 سنة - بنين</option>
-                    <option value="U11_GIRLS">تحت 11 سنة - بنات</option>
+                <select id="league-selector">
+                    <option value="U8_BOYS">U8 بنين</option>
+                    <option value="U8_GIRLS">U8 بنات</option>
+                    <option value="U9_BOYS">U9 بنين</option>
+                    <option value="U9_GIRLS">U9 بنات</option>
+                    <option value="U10_BOYS" selected>U10 بنين</option>
+                    <option value="U10_GIRLS">U10 بنات</option>
+                    <option value="U11_BOYS">U11 بنين</option>
+                    <option value="U11_GIRLS">U11 بنات</option>
                 </select>
-                <div class="status-indicator" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 100px; border: 1px solid var(--border-bright);">
-                    <div id="db-status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--warning);"></div>
-                    <span id="db-status-badge" style="font-size: 12px; font-weight: 700; color: var(--text-dim);">جاري الاتصال...</span>
+                <div style="display:flex;align-items:center;gap:5px">
+                    <div id="db-status-dot" style="width:7px;height:7px;border-radius:50%;background:var(--warning);flex-shrink:0"></div>
+                    <span id="db-status-badge" style="font-size:9px;font-weight:700;color:var(--text2)">اتصال...</span>
                 </div>
-                <button id="btn-login-top" class="btn ghost btn-sm">دخول 🔒</button>
-                <div id="user-profile" class="hidden" style="display: flex; align-items: center; gap: 12px;">
-                    <span id="current-user-display" style="font-size: 14px; font-weight: 700; color: var(--text);"></span>
-                    <button id="btn-logout" class="btn ghost btn-sm" style="color: var(--danger);">خروج</button>
+                <button id="btn-login-top" class="btn ghost btn-sm" style="font-size:10px;padding:4px 8px">دخول 🔒</button>
+                <div id="user-profile" class="hidden" style="display:flex;align-items:center;gap:6px">
+                    <span id="current-user-display" style="font-size:10px;font-weight:700;color:var(--text)"></span>
+                    <button id="btn-logout" class="btn ghost btn-sm" style="color:var(--danger);font-size:10px;padding:4px 8px">خروج</button>
                 </div>
             </div>
         </header>
 
-        <!-- Sidebar Navigation -->
-        <nav class="sidebar">
+        <!-- Bottom Nav -->
+        <nav class="sidebar" id="bottom-nav">
             <a href="#" class="nav-item active" data-view="dashboard">
-                <span class="icon">📊</span> <span class="nav-text">الرئيسية</span>
+                <span class="icon">📊</span><span class="nav-text">الرئيسية</span>
             </a>
             <a href="#" class="nav-item" data-view="teams-list">
-                <span class="icon">🛡️</span> <span class="nav-text">الفرق</span>
+                <span class="icon">🛡️</span><span class="nav-text">الفرق</span>
             </a>
             <a href="#" class="nav-item" data-view="players-directory">
-                <span class="icon">👥</span> <span class="nav-text">اللاعبين</span>
+                <span class="icon">👥</span><span class="nav-text">اللاعبين</span>
             </a>
             <a href="#" class="nav-item" data-view="matchmaker">
-                <span class="icon">⚔️</span> <span class="nav-text">المباريات</span>
+                <span class="icon">⚔️</span><span class="nav-text">المباريات</span>
             </a>
             <a href="#" class="nav-item" data-view="history">
-                <span class="icon">📜</span> <span class="nav-text">السجل</span>
+                <span class="icon">📜</span><span class="nav-text">السجل</span>
             </a>
             <a href="#" class="nav-item admin-only hidden" data-view="ingestion">
-                <span class="icon">➕</span> <span class="nav-text">إضافة بيانات</span>
+                <span class="icon">➕</span><span class="nav-text">بيانات</span>
             </a>
             <a href="#" class="nav-item admin-only hidden" data-view="admin-mgmt">
-                <span class="icon">⚙️</span> <span class="nav-text">إدارة الجداول</span>
+                <span class="icon">⚙️</span><span class="nav-text">إدارة</span>
             </a>
             <a href="#" class="nav-item admin-only hidden" data-view="referee-management">
-                <span class="icon">👨‍⚖️</span> <span class="nav-text">الحكام</span>
+                <span class="icon">👨‍⚖️</span><span class="nav-text">الحكام</span>
             </a>
         </nav>
 
@@ -82,26 +80,26 @@
                 
                 <!-- 1. Unified Dashboard View -->
                 <section id="view-dashboard" class="view-section active">
-                    <div class="dashboard-hero" style="margin-bottom: 40px;">
-                        <h2 style="font-size: 32px; font-weight: 900; margin-bottom: 8px;">أهلاً بك في XURA</h2>
-                        <p style="color: var(--text-dim); font-size: 16px;">متابعة فورية وشاملة لنتائج البطولة وتصنيفات الفرق</p>
+                    <div class="dashboard-hero">
+                        <h2>أهلاً بك في XURA 🏐</h2>
+                        <p>متابعة فورية وشاملة لنتائج البطولة وتصنيفات الفرق</p>
                     </div>
 
-                    <div class="quick-stats grid-3" style="margin-bottom: 40px;">
-                        <div class="card" style="padding: 24px; text-align: center;">
-                            <div style="font-size: 40px; margin-bottom: 10px;">🏆</div>
-                            <div id="stat-total-matches" style="font-size: 28px; font-weight: 900; font-family: 'Outfit';">--</div>
-                            <div style="color: var(--text-dim); font-size: 14px;">مباراة ملعوبة</div>
+                    <div class="quick-stats grid-3">
+                        <div class="card" style="padding:10px;text-align:center">
+                            <div style="font-size:22px;margin-bottom:4px">🏆</div>
+                            <div id="stat-total-matches" style="font-size:20px;font-weight:900;color:var(--amber)">--</div>
+                            <div style="color:var(--text2);font-size:9px">مباراة</div>
                         </div>
-                        <div class="card" style="padding: 24px; text-align: center;">
-                            <div style="font-size: 40px; margin-bottom: 10px;">🛡️</div>
-                            <div id="stat-total-teams" style="font-size: 28px; font-weight: 900; font-family: 'Outfit';">--</div>
-                            <div style="color: var(--text-dim); font-size: 14px;">فريق مشارك</div>
+                        <div class="card" style="padding:10px;text-align:center">
+                            <div style="font-size:22px;margin-bottom:4px">🛡️</div>
+                            <div id="stat-total-teams" style="font-size:20px;font-weight:900;color:var(--blue)">--</div>
+                            <div style="color:var(--text2);font-size:9px">فريق</div>
                         </div>
-                        <div class="card" style="padding: 24px; text-align: center;">
-                            <div style="font-size: 40px; margin-bottom: 10px;">🔥</div>
-                            <div id="stat-live-now" style="font-size: 28px; font-weight: 900; font-family: 'Outfit'; color: var(--primary);">--</div>
-                            <div style="color: var(--text-dim); font-size: 14px;">مباريات جارية</div>
+                        <div class="card" style="padding:10px;text-align:center">
+                            <div style="font-size:22px;margin-bottom:4px">🔥</div>
+                            <div id="stat-live-now" style="font-size:20px;font-weight:900;color:var(--red)">--</div>
+                            <div style="color:var(--text2);font-size:9px">جارية</div>
                         </div>
                     </div>
                     
@@ -698,6 +696,7 @@
         </div>
     </div>
 
+    <div id="toast"></div>
     <script type="module" src="js/app.js"></script>
 </body>
 </html>
