@@ -354,9 +354,9 @@ const setupForms = () => {
     if (addRefereeForm) {
         addRefereeForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('referee-name').value;
-            const grade = document.getElementById('referee-grade').value;
-            const password = document.getElementById('referee-password').value;
+            const name = document.getElementById('referee-name').value.trim();
+            const grade = document.getElementById('referee-grade').value.trim();
+            const password = document.getElementById('referee-password').value.trim();
             await DB.addReferee({ name, grade, password });
             await loadData();
             updateUI();

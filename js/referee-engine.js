@@ -56,13 +56,13 @@ window.doLogin = async () => {
     let found = null;
     if (snap) {
         const refs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        found = refs.find(r => r.name === name && r.password === pass);
+        found = refs.find(r => (r.name||'').trim() === name && (r.password||'').trim() === pass);
     }
     
     // If not found in Firebase (or offline), check local storage (unsynced referees)
     if (!found) {
         const localRefs = JSON.parse(localStorage.getItem('mvl_referees') || '[]');
-        found = localRefs.find(r => r.name === name && r.password === pass);
+        found = localRefs.find(r => (r.name||'').trim() === name && (r.password||'').trim() === pass);
     }
 
     if (found) {
