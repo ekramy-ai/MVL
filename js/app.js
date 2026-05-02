@@ -469,9 +469,10 @@ const setupActions = () => {
             
             for (let i = 0; i < count; i++) {
                 const n = teamNames[i % teamNames.length] + (Math.floor(i / teamNames.length) > 0 ? ` ${Math.floor(i / teamNames.length)+1}` : '');
-                await DB.addTeam({ name: n, region: 'تجريبي', league: state.currentLeague, pps: 0 });
+                const newT = await DB.addTeam({ name: n, region: 'تجريبي', league: state.currentLeague, pps: 0 });
+                if(newT) state.teams.push(newT);
             }
-            await loadData(); renderTeamsSelect(); updateUI();
+            renderTeamsSelect(); updateUI();
             btnAutoGenTeams.disabled = false; btnAutoGenTeams.textContent = '🤖 توليد تلقائي';
             showToast(`✅ تم توليد ${count} فريق محلياً. لا تنسَ الضغط على مزامنة لحفظها!`);
             setTimeout(() => showPotsResult(), 500);
@@ -715,18 +716,22 @@ const setupActions = () => {
                             jersey: Math.floor(Math.random() * 99) + 1
                         };
                         player.pps = calculatePlayerPPS(player, [], maxVals);
-                        await DB.addPlayer(player);
+                        const newP = await DB.addPlayer(player);
+                        if(newP) state.players.push(newP);
                         processed++;
                     }
                 }
                 
-                await loadData(); // Reloads and updates PPS via recalculation
                 for (const team of targetTeams) {
                     const freshTeam = state.teams.find(t => t.id === team.id);
-                    if(freshTeam) await DB.updateTeam(team.id, { pps: freshTeam.pps });
+                    if(freshTeam) {
+                        freshTeam.pps = calculateTeamPPS(team.id, state.players);
+                        await DB.updateTeam(team.id, { pps: freshTeam.pps });
+                    }
                 }
 
                 renderTeamsSelect();
+                updateUI();
                 showToast(`✅ تم توليد ${processed} لاعب محلياً. لا تنسَ المزامنة!`);
                 if (teamId !== 'all') updatePlayerCount(teamId);
                 

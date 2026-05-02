@@ -39,6 +39,14 @@ export const DB = {
             console.log("Migrating Settings...");
             await setDoc(doc(db, "settings", "global"), localSettings);
             console.log("Migration complete.");
+            
+            // CLEAR CACHE AFTER SUCCESS
+            localTeams = [];
+            localPlayers = [];
+            localMatches = [];
+            localReferees = [];
+            saveLocal();
+            
             return true;
         } catch (e) {
             console.error("Migration failed:", e);
