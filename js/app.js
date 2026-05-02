@@ -464,13 +464,16 @@ const setupActions = () => {
             const count = parseInt(document.getElementById('auto-teams-count')?.value) || 8;
             const teamNames = ['نسور','أسود','فرسان','نجوم','أبطال','صقور','رياح','جبال','بروق','أمواج','ثعالب','ذئاب','فهود','عقبان','طيور','أنمار'];
             btnAutoGenTeams.disabled = true; btnAutoGenTeams.textContent = 'جاري التوليد...';
+            
+            DB.setFirebaseDisabled(true); // Disable Firebase temporarily
+            
             for (let i = 0; i < count; i++) {
                 const n = teamNames[i % teamNames.length] + (Math.floor(i / teamNames.length) > 0 ? ` ${Math.floor(i / teamNames.length)+1}` : '');
                 await DB.addTeam({ name: n, region: 'تجريبي', league: state.currentLeague, pps: 0 });
             }
             await loadData(); renderTeamsSelect(); updateUI();
             btnAutoGenTeams.disabled = false; btnAutoGenTeams.textContent = '🤖 توليد تلقائي';
-            showToast(`✅ تم توليد ${count} فريق للاختبار`);
+            showToast(`✅ تم توليد ${count} فريق محلياً. لا تنسَ الضغط على مزامنة لحفظها!`);
             setTimeout(() => showPotsResult(), 500);
         });
     }
@@ -646,31 +649,35 @@ const setupActions = () => {
         });
     }
 
+    const btnSync = document.getElementById('btn-sync-firebase');
     const btnMigrate = document.getElementById('btn-migrate-firebase');
-    if (btnMigrate) {
-        btnMigrate.addEventListener('click', async () => {
-            btnMigrate.disabled = true;
-            const originalText = btnMigrate.textContent;
-            btnMigrate.textContent = 'جاري الرفع...';
-            
-            const success = await DB.migrateLocalToFirebase();
-            if (success) {
-                alert('تم رفع جميع البيانات المحلية إلى Firestore بنجاح!');
-                await loadData();
-                updateUI();
-            } else {
-                alert('فشل الرفع. يرجى التأكد من اتصال الإنترنت وإعدادات Firebase.');
-            }
-            
-            btnMigrate.disabled = false;
-            btnMigrate.textContent = originalText;
-        });
-    }
+    
+    const doSync = async (btn) => {
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.textContent = 'جاري المزامنة...';
+        
+        if (DB.setFirebaseDisabled) DB.setFirebaseDisabled(false); // Enable Firebase to sync
+        const success = await DB.migrateLocalToFirebase();
+        if (success) {
+            showToast('✅ تمت المزامنة! كل التعديلات القادمة سترفع تلقائياً.');
+            await loadData();
+            updateUI();
+        } else {
+            alert('فشل المزامنة. تأكد من اتصالك بالإنترنت.');
+        }
+        
+        btn.textContent = originalText;
+        btn.disabled = false;
+    };
 
+    if (btnSync) btnSync.addEventListener('click', () => doSync(btnSync));
+    if (btnMigrate) btnMigrate.addEventListener('click', () => doSync(btnMigrate));
+    
     const btnClearData = document.getElementById('btn-clear-data');
     if (btnClearData) {
         btnClearData.addEventListener('click', async () => {
-            if (confirm('هل أنت متأكد من مسح جميع الفرق واللاعبين والمباريات؟ لا يمكن التراجع عن هذا الإجراء.')) {
+            if (confirm('هل أنت متأكد من مسح جميع الفرق واللاعبين والمباريات؟')) {
                 await DB.clearAll();
                 await loadData();
                 renderTeamsSelect();
@@ -689,50 +696,62 @@ const setupActions = () => {
                 return;
             }
 
-            const team = state.teams.find(t => t.id === teamId);
-            if (!team) return;
+            let targetTeams = [];
+            if (teamId === 'all') {
+                targetTeams = filterByLeague(state.teams);
+            } else {
+                const team = state.teams.find(t => t.id === teamId);
+                if (team) targetTeams.push(team);
+            }
 
-            let currentCount = state.players.filter(p => p.teamId === teamId).length;
-            const targetCount = parseInt(document.getElementById('auto-players-count')?.value) || 15;
-            let needed = targetCount - currentCount;
-            if (needed <= 0) {
-                alert('الفريق يحتوي بالفعل على العدد المطلوب من اللاعبين أو أكثر.');
+            if (targetTeams.length === 0) {
+                alert('لا يوجد فرق صالحة في هذه الفئة للتوليد.');
                 return;
             }
-            if (currentCount + needed > 20) needed = 20 - currentCount;
 
+            const targetCount = parseInt(document.getElementById('auto-players-count')?.value) || 15;
             btnGeneratePlayers.disabled = true;
             const originalText = btnGeneratePlayers.textContent;
             
             try {
+                DB.setFirebaseDisabled(true); // Disable Firebase temporarily
+
                 const maxVals = { maxH: 165, maxR: 175, maxJ: 45 };
                 let processed = 0;
 
                 btnGeneratePlayers.textContent = `جاري التوليد...`;
-                const playerPromises = [];
-                for(let j = 1; j <= needed; j++) {
-                    const player = {
-                        teamId: team.id,
-                        name: `لاعب ${currentCount + j} - ${team.name}`,
-                        age: Math.floor(Math.random() * 4) + 9,
-                        height: Math.floor(Math.random() * 35) + 130,
-                        reach: Math.floor(Math.random() * 35) + 140,
-                        jump: Math.floor(Math.random() * 25) + 20,
-                        jersey: Math.floor(Math.random() * 99) + 1
-                    };
-                    player.pps = calculatePlayerPPS(player, [], maxVals);
-                    playerPromises.push(DB.addPlayer(player));
-                    processed++;
+                
+                for (const team of targetTeams) {
+                    let currentCount = state.players.filter(p => p.teamId === team.id).length;
+                    let needed = targetCount - currentCount;
+                    if (needed <= 0) continue;
+                    if (currentCount + needed > 20) needed = 20 - currentCount;
+
+                    for(let j = 1; j <= needed; j++) {
+                        const player = {
+                            teamId: team.id,
+                            name: `لاعب ${currentCount + j} - ${team.name}`,
+                            age: Math.floor(Math.random() * 4) + 9,
+                            height: Math.floor(Math.random() * 35) + 130,
+                            reach: Math.floor(Math.random() * 35) + 140,
+                            jump: Math.floor(Math.random() * 25) + 20,
+                            jersey: Math.floor(Math.random() * 99) + 1
+                        };
+                        player.pps = calculatePlayerPPS(player, [], maxVals);
+                        await DB.addPlayer(player);
+                        processed++;
+                    }
                 }
-                await Promise.all(playerPromises);
                 
                 await loadData(); // Reloads and updates PPS via recalculation
-                const freshTeam = state.teams.find(t => t.id === team.id);
-                if(freshTeam) await DB.updateTeam(team.id, { pps: freshTeam.pps });
+                for (const team of targetTeams) {
+                    const freshTeam = state.teams.find(t => t.id === team.id);
+                    if(freshTeam) await DB.updateTeam(team.id, { pps: freshTeam.pps });
+                }
 
                 renderTeamsSelect();
-                showToast(`✅ تم إضافة ${processed} لاعب عشوائي لـ ${team.name}`);
-                updatePlayerCount(teamId);
+                showToast(`✅ تم توليد ${processed} لاعب محلياً. لا تنسَ المزامنة!`);
+                if (teamId !== 'all') updatePlayerCount(teamId);
                 
                 setTimeout(() => showPotsResult(), 800);
             } catch (e) {
@@ -1117,7 +1136,7 @@ const renderTeamsSelect = () => {
         html += `<option value="${t.id}">${t.name}</option>`;
     });
     if(s1) s1.innerHTML = html;
-    if(s2) s2.innerHTML = html;
+    if(s2) s2.innerHTML = '<option value="all">🌐 لكل الفرق التابعة للفئة</option>' + html;
 };
 
 const renderPots = () => {
