@@ -13,3 +13,6 @@ brain/
 # OS Files
 Thumbs.db
 .DS_Store
+
+# Project Files Folder
+Files/
