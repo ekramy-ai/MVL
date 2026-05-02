@@ -497,29 +497,6 @@ const setupActions = () => {
         alert('تم توليد المجموعات والمباريات للفئة المختارة');
     });
 
-    const btnSync = document.getElementById('btn-sync-firebase');
-    if (btnSync) {
-        btnSync.addEventListener('click', async () => {
-            const statusMsg = document.getElementById('sync-status-msg');
-            btnSync.disabled = true;
-            btnSync.textContent = "جاري المزامنة...";
-            statusMsg.textContent = "يتم الآن رفع البيانات إلى السحابة، يرجى عدم إغلاق الصفحة...";
-            
-            const success = await DB.migrateLocalToFirebase();
-            
-            if (success) {
-                statusMsg.style.color = "var(--success)";
-                statusMsg.textContent = "✅ تمت المزامنة بنجاح! كافة البيانات الآن على Firebase.";
-                btnSync.textContent = "تمت المزامنة ✨";
-                updateDBStatus(true);
-            } else {
-                statusMsg.style.color = "var(--danger)";
-                statusMsg.textContent = "❌ فشلت المزامنة. تأكد من إعدادات Firebase والاتصال بالإنترنت.";
-                btnSync.textContent = "فشل المزامنة ⚠️";
-                btnSync.disabled = false;
-            }
-        });
-    }
 
     const btnGenerateTeams = document.getElementById('btn-generate-teams-from-file');
     const teamsFileInput = document.getElementById('teams-file-input');
