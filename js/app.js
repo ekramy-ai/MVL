@@ -485,6 +485,16 @@ const setupActions = () => {
             alert('لا يوجد عدد كافٍ من الفرق في هذه الفئة لتوليد مجموعات (تحتاج 3 على الأقل)');
             return;
         }
+        
+        const existingLeagueMatches = state.matches.filter(m => m.teamA?.league === state.currentLeague);
+        if (existingLeagueMatches.length > 0) {
+            if (!confirm('يوجد مباريات مولدة مسبقاً لهذه الفئة. هل تريد مسحها وتوليد دوري جديد؟')) return;
+            for (const m of existingLeagueMatches) {
+                if (m.status !== 'completed') await DB.deleteMatch(m.id);
+            }
+            state.matches = state.matches.filter(m => m.teamA?.league !== state.currentLeague || m.status === 'completed');
+        }
+
         const pots = clusterTeams(leagueTeams);
         const groups = generateGroups(pots);
         const matches = generateMatches(groups, state.currentRound);

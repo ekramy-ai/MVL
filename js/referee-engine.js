@@ -57,6 +57,24 @@ window.doLogin = async () => {
     if (snap) {
         const refs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         found = refs.find(r => (r.name||'').trim() === name && (r.password||'').trim() === pass);
+    } else {
+        // Fallback to REST API if Firebase SDK throws (e.g., quota exceeded)
+        try {
+            const res = await fetch('https://firestore.googleapis.com/v1/projects/mini-volley-engine/databases/(default)/documents/referees');
+            const data = await res.json();
+            if (data.documents) {
+                const refs = data.documents.map(d => {
+                    const fields = d.fields || {};
+                    return {
+                        id: d.name.split('/').pop(),
+                        name: fields.name?.stringValue || '',
+                        password: fields.password?.stringValue || '',
+                        grade: fields.grade?.stringValue || ''
+                    };
+                });
+                found = refs.find(r => r.name.trim() === name && r.password.trim() === pass);
+            }
+        } catch(ex) { /* completely offline */ }
     }
     
     // If not found in Firebase (or offline), check local storage (unsynced referees)
@@ -109,8 +127,46 @@ window.loadMatches = async () => {
   list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">جاري التحميل...</div>';
 
   try {
-    const snap = await getDocs(collection(db, 'matches'));
-    let matches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let matches = [];
+    try {
+        const snap = await getDocs(collection(db, 'matches'));
+        matches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(sdkError) {
+        // Fallback to REST API
+        const res = await fetch('https://firestore.googleapis.com/v1/projects/mini-volley-engine/databases/(default)/documents/matches');
+        const data = await res.json();
+        if (data.documents) {
+            matches = data.documents.map(d => {
+                const f = d.fields || {};
+                
+                // Helper to safely extract Firestore values
+                const ext = (obj) => {
+                    if(!obj) return null;
+                    if(obj.stringValue !== undefined) return obj.stringValue;
+                    if(obj.integerValue !== undefined) return Number(obj.integerValue);
+                    if(obj.mapValue) {
+                        const m = {};
+                        for(const k in obj.mapValue.fields) m[k] = ext(obj.mapValue.fields[k]);
+                        return m;
+                    }
+                    if(obj.arrayValue) return obj.arrayValue.values ? obj.arrayValue.values.map(v => ext(v)) : [];
+                    return null;
+                };
+
+                return {
+                    id: d.name.split('/').pop(),
+                    status: ext(f.status),
+                    referee: ext(f.referee),
+                    teamA: ext(f.teamA),
+                    teamB: ext(f.teamB),
+                    score: ext(f.score),
+                    sets: ext(f.sets),
+                    groupId: ext(f.groupId),
+                    round: ext(f.round)
+                };
+            });
+        }
+    }
 
     // If not admin, filter by assigned referee
     if (currentRef.id !== 'admin') {
