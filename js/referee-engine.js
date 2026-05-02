@@ -231,61 +231,88 @@ window.openMatch = async (matchId) => {
 };
 
 // ── LINEUP SELECTION ──
+window.lineupSelections = { A: [], B: [] };
+
 window.renderLineupForm = async () => {
     const container = document.getElementById('lineup-form-container');
     container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">جاري تحميل اللاعبين...</div>';
     
     try {
+        window.lineupSelections = { A: [], B: [] };
         const teamAId = currentMatch.teamA?.id || currentMatch.teamA;
         const teamBId = currentMatch.teamB?.id || currentMatch.teamB;
         
         const snap = await getDocs(collection(db, 'players'));
         const players = snap.docs.map(d => ({id: d.id, ...d.data()}));
-        const playersA = players.filter(p => p.teamId === teamAId);
-        const playersB = players.filter(p => p.teamId === teamBId);
+        window.availablePlayersA = players.filter(p => p.teamId === teamAId);
+        window.availablePlayersB = players.filter(p => p.teamId === teamBId);
         
-        const nameA = currentMatch.teamA?.name || currentMatch.teamAName || 'فريق أ';
-        const nameB = currentMatch.teamB?.name || currentMatch.teamBName || 'فريق ب';
-        
-        let html = `
-          <div class="card" style="margin-bottom:10px">
-            <h3 style="color:var(--teal);margin-bottom:10px;font-size:12px">${nameA}</h3>
-            <div id="sel-players-a" style="display:flex;flex-wrap:wrap;gap:6px">
-              ${playersA.map(p => `
-                <label style="display:flex;align-items:center;gap:4px;background:var(--surface2);padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer">
-                  <input type="checkbox" value="${p.id}" data-name="${p.name}"> ${p.name}
-                </label>
-              `).join('')}
-              ${playersA.length === 0 ? '<div style="font-size:10px;color:var(--muted)">لا يوجد لاعبين مسجلين</div>' : ''}
-            </div>
-          </div>
-          <div class="card" style="margin-bottom:10px">
-            <h3 style="color:var(--amber);margin-bottom:10px;font-size:12px">${nameB}</h3>
-            <div id="sel-players-b" style="display:flex;flex-wrap:wrap;gap:6px">
-              ${playersB.map(p => `
-                <label style="display:flex;align-items:center;gap:4px;background:var(--surface2);padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer">
-                  <input type="checkbox" value="${p.id}" data-name="${p.name}"> ${p.name}
-                </label>
-              `).join('')}
-              ${playersB.length === 0 ? '<div style="font-size:10px;color:var(--muted)">لا يوجد لاعبين مسجلين</div>' : ''}
-            </div>
-          </div>
-        `;
-        container.innerHTML = html;
+        window.updateLineupUI();
     } catch(e) {
         container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red)">فشل تحميل اللاعبين.</div>';
     }
 };
 
+window.updateLineupUI = () => {
+    const container = document.getElementById('lineup-form-container');
+    const nameA = currentMatch.teamA?.name || currentMatch.teamAName || 'فريق أ';
+    const nameB = currentMatch.teamB?.name || currentMatch.teamBName || 'فريق ب';
+    
+    const playedA = liveScore.playedA || [];
+    const playedB = liveScore.playedB || [];
+
+    const renderSide = (side, players, played, name, color) => {
+        const sel = window.lineupSelections[side];
+        return `
+          <div class="card" style="margin-bottom:10px">
+            <h3 style="color:${color};margin-bottom:10px;font-size:12px">${name} <span style="color:var(--text2);font-size:10px">(اختر بالترتيب المطلوب للإرسال)</span></h3>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${players.map(p => {
+                  if (played.includes(p.id)) {
+                      return \`<div style="padding:6px 10px;border-radius:6px;font-size:11px;background:var(--surface);color:var(--muted);opacity:0.6;border:1px dashed var(--border)">\${p.name} (لعب سابقاً)</div>\`;
+                  }
+                  const selIdx = sel.findIndex(s => s.id === p.id);
+                  const isSel = selIdx > -1;
+                  const bg = isSel ? color : 'var(--surface2)';
+                  const txt = isSel ? '#000' : 'var(--text)';
+                  const badge = isSel ? \`<span style="background:rgba(255,255,255,0.8);color:#000;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;margin-right:6px;font-weight:bold">\${selIdx + 1}</span>\` : '';
+                  
+                  return \`<div onclick="toggleLineupPlayer('\${side}', '\${p.id}', '\${p.name.replace(/'/g, "\\\\'")}')" 
+                               style="padding:6px 10px;border-radius:6px;font-size:11px;background:\${bg};color:\${txt};cursor:pointer;display:flex;align-items:center;font-weight:\${isSel?'bold':'normal'};user-select:none">
+                            \${p.name} \${badge}
+                          </div>\`;
+              }).join('')}
+              ${players.length === 0 ? '<div style="font-size:10px;color:var(--muted)">لا يوجد لاعبين مسجلين</div>' : ''}
+            </div>
+          </div>
+        `;
+    };
+
+    container.innerHTML = renderSide('A', window.availablePlayersA, playedA, nameA, 'var(--teal)') +
+                          renderSide('B', window.availablePlayersB, playedB, nameB, 'var(--amber)');
+};
+
+window.toggleLineupPlayer = (side, id, name) => {
+    const list = window.lineupSelections[side];
+    const idx = list.findIndex(p => p.id === id);
+    if (idx > -1) {
+        list.splice(idx, 1);
+    } else {
+        if (list.length >= 7) { toast('الحد الأقصى 7 لاعبين'); return; }
+        list.push({ id, name });
+    }
+    window.updateLineupUI();
+};
+
 window.saveLineup = async () => {
-    const chkA = Array.from(document.querySelectorAll('#sel-players-a input:checked'));
-    const chkB = Array.from(document.querySelectorAll('#sel-players-b input:checked'));
+    const chkA = window.lineupSelections.A;
+    const chkB = window.lineupSelections.B;
     
     if (chkA.length < 4 || chkA.length > 7) { toast('فريق أ: اختر من 4 إلى 7 لاعبين للتشكيل'); return; }
     if (chkB.length < 4 || chkB.length > 7) { toast('فريق ب: اختر من 4 إلى 7 لاعبين للتشكيل'); return; }
     
-    liveScore.lineupA = chkA.map(el => ({ id: el.value, name: el.dataset.name }));
-    liveScore.lineupB = chkB.map(el => ({ id: el.value, name: el.dataset.name }));
+    liveScore.lineupA = [...chkA];
+    liveScore.lineupB = [...chkB];
     
     await saveScore();
     renderBoard();
@@ -315,9 +342,17 @@ function renderBoard() {
 
   const diff = Math.abs(liveScore.A - liveScore.B);
   if ((liveScore.A >= 25 || liveScore.B >= 25) && diff >= 2) {
-      document.getElementById('set-info').textContent = '✨ الشوط منتهي (اضغط إنهاء الشوط)';
-      document.getElementById('set-info').style.color = 'var(--green)';
+      if (!window.endingSet) {
+          window.endingSet = true;
+          document.getElementById('set-info').textContent = '✨ الشوط انتهى! انتقال تلقائي...';
+          document.getElementById('set-info').style.color = 'var(--green)';
+          setTimeout(() => {
+              window.endingSet = false;
+              window.endSet();
+          }, 2000);
+      }
   } else {
+      window.endingSet = false;
       document.getElementById('set-info').style.color = 'var(--amber)';
   }
 
@@ -435,6 +470,15 @@ window.endSet = async () => {
   else liveScore.setsB++;
 
   toast(`انتهى الشوط ${liveScore.set}! الفائز: ${winnerSide === 'A' ? document.getElementById('board-name-a').textContent : document.getElementById('board-name-b').textContent}`);
+
+  // Record set score and played players
+  liveScore.setScores = liveScore.setScores || [];
+  liveScore.setScores.push({ A: liveScore.A, B: liveScore.B });
+  
+  liveScore.playedA = liveScore.playedA || [];
+  liveScore.playedB = liveScore.playedB || [];
+  if (liveScore.lineupA) liveScore.playedA.push(...liveScore.lineupA.map(p => p.id));
+  if (liveScore.lineupB) liveScore.playedB.push(...liveScore.lineupB.map(p => p.id));
 
   // Check if match over (best of 3)
   if (liveScore.setsA === 2 || liveScore.setsB === 2) {
