@@ -304,7 +304,7 @@
                         <div class="card">
                             <div class="card-header">
                                 <h2>إضافة لاعب لفريق</h2>
-                                <div id="player-count-badge" style="font-size:10px;padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--text2)">0/20 لاعب</div>
+                                <div id="player-count-badge" style="font-size:10px;padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--text2)">0/21 لاعب</div>
                             </div>
                             <form id="add-player-form" class="form-layout">
                                 <div class="form-group">
@@ -368,10 +368,10 @@
                                     </div>
                                 </div>
                                 <div id="player-limit-warning" style="display:none;background:var(--red-bg,#450a0a);border:1px solid var(--red-d,#dc2626);border-radius:8px;padding:10px;font-size:11px;color:var(--red,#f87171)">
-                                    ⚠️ وصل الفريق للحد الأقصى (20 لاعب). لا يمكن إضافة المزيد.
+                                    ⚠️ وصل الفريق للحد الأقصى (21 لاعب). لا يمكن إضافة المزيد.
                                 </div>
                                 <div id="player-min-info" style="font-size:10px;color:var(--muted);padding:6px 0">
-                                    📌 الحد الأدنى 12 لاعب — الحد الأقصى 20 لاعب لكل فريق
+                                    📌 الحد الأدنى 12 لاعب — الحد الأقصى 21 لاعب لكل فريق
                                 </div>
                                 <button type="submit" class="btn secondary btn-full" id="btn-add-player-submit">➕ إضافة وحساب PPS</button>
                             </form>
@@ -419,10 +419,10 @@
                                 </div>
                                 <div style="padding:14px;background:rgba(167,139,250,.04);border:1px dashed var(--purple-d,#7c3aed);border-radius:12px">
                                     <div style="font-size:11px;font-weight:800;color:var(--purple,#a78bfa);margin-bottom:8px">توليد تلقائي للاختبار</div>
-                                    <div style="font-size:9.5px;color:var(--muted);margin-bottom:8px">12–20 لاعب ببيانات عشوائية</div>
+                                    <div style="font-size:9.5px;color:var(--muted);margin-bottom:8px">12–21 لاعب ببيانات عشوائية</div>
                                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
                                         <label style="font-size:10px;color:var(--text2)">عدد اللاعبين:</label>
-                                        <input type="number" id="auto-players-count" value="15" min="12" max="20" style="width:60px;padding:4px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--faint);color:var(--text);font-size:12px">
+                                        <input type="number" id="auto-players-count" value="12" min="12" max="21" style="width:60px;padding:4px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--faint);color:var(--text);font-size:12px">
                                     </div>
                                     <button id="btn-generate-players" class="btn ghost btn-sm" style="width:100%">🤖 توليد تلقائي</button>
                                 </div>

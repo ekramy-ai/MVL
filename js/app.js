@@ -430,13 +430,13 @@ window.updatePlayerCount = (teamId) => {
     const warn = document.getElementById('player-limit-warning');
     const btn = document.getElementById('btn-add-player-submit');
     if (badge) {
-        badge.textContent = `${count}/20 لاعب`;
-        if (count >= 20) { badge.style.background='var(--red-bg,#450a0a)'; badge.style.color='var(--red,#f87171)'; }
+        badge.textContent = `${count}/21 لاعب`;
+        if (count >= 21) { badge.style.background='var(--red-bg,#450a0a)'; badge.style.color='var(--red,#f87171)'; }
         else if (count >= 12) { badge.style.background='var(--green-bg,#052e16)'; badge.style.color='var(--green,#4ade80)'; }
         else { badge.style.background='var(--surface2)'; badge.style.color='var(--text2)'; }
     }
-    if (warn) warn.style.display = count >= 20 ? 'block' : 'none';
-    if (btn) btn.disabled = count >= 20;
+    if (warn) warn.style.display = count >= 21 ? 'block' : 'none';
+    if (btn) btn.disabled = count >= 21;
 };
 
 window.ingestTab = (tabId, btn) => {

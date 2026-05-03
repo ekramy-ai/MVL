@@ -416,7 +416,7 @@ window.renderLineupForm = async () => {
         const totalB = window.availablePlayersB.length;
         const totalPlayers = Math.min(totalA, totalB);
         const setNum = liveScore.set || 1;
-        const reqSize = Math.max(4, Math.min(7, getSetLineupSize(Math.max(12, Math.min(21, totalPlayers)), setNum)));
+        const reqSize = getSetLineupSize(Math.max(12, Math.min(21, totalPlayers)), setNum);
         window.lineupRequiredSize = reqSize;
         window.lineupMaxSize = reqSize;
         // Update hint
