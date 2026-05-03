@@ -397,6 +397,13 @@ window.renderLineupForm = async () => {
     }
 };
 
+window.getRequiredLineupSize = (totalPlayers, setNum) => {
+    if (totalPlayers === 0) return 4;
+    const base = Math.floor(totalPlayers / 3);
+    if (setNum >= 3) return totalPlayers - (base * 2);
+    return base;
+};
+
 window.updateLineupUI = () => {
     const container = document.getElementById('lineup-form-container');
     const nameA = currentMatch.teamA ? (currentMatch.teamA.name || '') : (currentMatch.teamAName || 'فريق أ');
@@ -406,9 +413,10 @@ window.updateLineupUI = () => {
     const playedB = liveScore.playedB || [];
 
     const renderSide = (side, players, played, teamName, color) => {
+        const req = window.getRequiredLineupSize(players.length, liveScore.set || 1);
         const sel = window.lineupSelections[side];
         let html = '<div class="card" style="margin-bottom:10px">';
-        html += '<h3 style="color:' + color + ';margin-bottom:10px;font-size:12px">' + teamName + ' <span style="color:var(--text2);font-size:10px">(اختر بالترتيب المطلوب للإرسال)</span></h3>';
+        html += '<h3 style="color:' + color + ';margin-bottom:10px;font-size:12px">' + teamName + ' <span style="color:var(--text2);font-size:10px">(اختر ' + req + ' لاعبين بالترتيب المطلوب للإرسال)</span></h3>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
         
         if (players.length === 0) {

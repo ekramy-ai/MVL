@@ -213,6 +213,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto S
       </div>
     </div>
 
+    <!-- MATCH SUMMARY SCREEN -->
+    <div class="screen" id="scr-summary">
+      <div class="hero" style="margin-bottom:10px;padding:12px">
+        <h2 style="font-size:14px">نهاية المباراة</h2>
+        <p style="font-size:10px">تفاصيل وسجل أحداث المباراة</p>
+      </div>
+      <div class="card" id="summary-score" style="text-align: center;"></div>
+      <div class="sec-title"><span>سجل الأحداث</span></div>
+      <div class="card" style="padding:8px;max-height:250px;overflow-y:auto">
+        <div id="summary-event-log"></div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="backToMatches()">العودة للصفحة الرئيسية 🏠</button>
+    </div>
+
   </div>
 </div>
 
