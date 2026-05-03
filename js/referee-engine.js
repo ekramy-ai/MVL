@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
   getFirestore, collection, getDocs, doc,
   updateDoc, onSnapshot, serverTimestamp
@@ -49,38 +49,55 @@ window.doLogin = async () => {
   btn.textContent = 'جاري التحقق...'; btn.disabled = true;
 
   try {
-    // Check referees collection
+    const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
+
+    // Step 1: Try Firebase SDK
     let snap;
-    try { snap = await getDocs(collection(db, 'referees')); } catch(e) { /* offline */ }
-    
+    try { snap = await Promise.race([getDocs(collection(db, 'referees')), timeout(3000)]); } catch(e) {}
+
     let found = null;
     if (snap) {
         const refs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        try { localStorage.setItem('mvl_referees', JSON.stringify(refs)); } catch(e) {}
+        try { localStorage.setItem('mvl_cache_referees', JSON.stringify({ data: refs, ts: Date.now() })); } catch(e) {}
         found = refs.find(r => (r.name||'').trim() === name && (r.password||'').trim() === pass);
-    } else {
-        // Fallback to REST API if Firebase SDK throws (e.g., quota exceeded)
-        try {
-            const res = await fetch('https://firestore.googleapis.com/v1/projects/mini-volley-engine/databases/(default)/documents/referees');
-            const data = await res.json();
-            if (data.documents) {
-                const refs = data.documents.map(d => {
-                    const fields = d.fields || {};
-                    return {
-                        id: d.name.split('/').pop(),
-                        name: fields.name?.stringValue || '',
-                        password: fields.password?.stringValue || '',
-                        grade: fields.grade?.stringValue || ''
-                    };
-                });
-                found = refs.find(r => r.name.trim() === name && r.password.trim() === pass);
-            }
-        } catch(ex) { /* completely offline */ }
     }
-    
-    // If not found in Firebase (or offline), check local storage (unsynced referees)
+
+    // Step 2: Try REST API
+    if (!found && !snap) {
+        try {
+            const res = await Promise.race([
+              fetch('https://firestore.googleapis.com/v1/projects/mini-volley-engine/databases/(default)/documents/referees'),
+              timeout(4000)
+            ]);
+            if (res && res.ok) {
+              const data = await res.json();
+              if (data.documents) {
+                  const refs = data.documents.map(d => {
+                      const f = d.fields || {};
+                      return {
+                          id: d.name.split('/').pop(),
+                          name: f.name ? f.name.stringValue || '' : '',
+                          password: f.password ? f.password.stringValue || '' : '',
+                          grade: f.grade ? f.grade.stringValue || '' : ''
+                      };
+                  });
+                  try { localStorage.setItem('mvl_referees', JSON.stringify(refs)); } catch(e) {}
+                  try { localStorage.setItem('mvl_cache_referees', JSON.stringify({ data: refs, ts: Date.now() })); } catch(e) {}
+                  found = refs.find(r => r.name.trim() === name && r.password.trim() === pass);
+              }
+            }
+        } catch(ex) {}
+    }
+
+    // Step 3: All localStorage sources
     if (!found) {
-        const localRefs = JSON.parse(localStorage.getItem('mvl_referees') || '[]');
-        found = localRefs.find(r => (r.name||'').trim() === name && (r.password||'').trim() === pass);
+        const srcs = [];
+        try { srcs.push(...JSON.parse(localStorage.getItem('mvl_referees') || '[]')); } catch(e) {}
+        try { const c = JSON.parse(localStorage.getItem('mvl_cache_referees') || 'null'); if (c && c.data) srcs.push(...c.data); } catch(e) {}
+        const seen = {};
+        const allLocalRefs = srcs.filter(r => r && r.id && !seen[r.id] && (seen[r.id] = 1));
+        found = allLocalRefs.find(r => (r.name||'').trim() === name && (r.password||'').trim() === pass);
     }
 
     if (found) {
@@ -89,18 +106,21 @@ window.doLogin = async () => {
       document.getElementById('btn-logout').style.display = 'inline-block';
       await loadMatches();
       show('scr-matches');
-      toast(`مرحباً ${found.name} 👋`);
+      toast('مرحباً ' + found.name + ' 👋');
     } else {
-      // Check admin
       let settings = { adminUsername: 'admin', adminPassword: 'admin' };
       try {
-          const settSnap = await getDocs(collection(db, 'settings'));
-          if (!settSnap.empty) settings = settSnap.docs[0].data();
+          const settSnap = await Promise.race([getDocs(collection(db, 'settings')), timeout(2000)]);
+          if (settSnap && !settSnap.empty) {
+            settings = settSnap.docs[0].data();
+            try { localStorage.setItem('mvl_settings', JSON.stringify(settings)); } catch(e) {}
+            try { localStorage.setItem('mvl_cache_settings', JSON.stringify({ data: settings, ts: Date.now() })); } catch(e) {}
+          }
       } catch(e) {
-          const localSet = JSON.parse(localStorage.getItem('mvl_settings') || 'null');
-          if (localSet) settings = localSet;
+          try { const c = JSON.parse(localStorage.getItem('mvl_cache_settings') || 'null'); if (c && c.data) settings = c.data; } catch(e2) {}
+          try { const s = JSON.parse(localStorage.getItem('mvl_settings') || 'null'); if (s) settings = s; } catch(e2) {}
       }
-      
+
       if (name === settings.adminUsername && pass === settings.adminPassword) {
         currentRef = { id: 'admin', name: 'المدير', grade: 'Admin' };
         document.getElementById('ref-badge').textContent = 'المدير';
@@ -128,8 +148,9 @@ window.loadMatches = async () => {
 
   try {
     let matches = [];
+    const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
     try {
-        const snap = await getDocs(collection(db, 'matches'));
+        const snap = await Promise.race([getDocs(collection(db, 'matches')), timeout(3000)]);
         matches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch(sdkError) {
         // Fallback to REST API
@@ -168,9 +189,9 @@ window.loadMatches = async () => {
         }
     }
 
-    // If not admin, filter by assigned referee
+    // If not admin, filter by assigned referee only (no unassigned)
     if (currentRef.id !== 'admin') {
-      matches = matches.filter(m => m.referee === currentRef.id || !m.referee);
+      matches = matches.filter(m => m.referee === currentRef.id);
     }
 
     if (!matches.length) {
@@ -215,8 +236,44 @@ window.loadMatches = async () => {
 // ── OPEN MATCH ──
 window.openMatch = async (matchId) => {
   try {
-    const snap = await getDocs(collection(db, 'matches'));
-    const matchDoc = snap.docs.find(d => d.id === matchId);
+    const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
+    const snap = await Promise.race([getDocs(collection(db, 'matches')), timeout(3000)]);
+    let matchDoc = null;
+    if (snap) {
+      matchDoc = snap.docs.find(d => d.id === matchId);
+    } else {
+      // Fallback: search matches list if snap failed
+      const res = await fetch('https://firestore.googleapis.com/v1/projects/mini-volley-engine/databases/(default)/documents/matches');
+      const data = await res.json();
+      if (data.documents) {
+        const d = data.documents.find(doc => doc.name.endsWith('/' + matchId));
+        if (d) {
+          const ext = (obj) => {
+              if(!obj) return null;
+              if(obj.stringValue !== undefined) return obj.stringValue;
+              if(obj.integerValue !== undefined) return Number(obj.integerValue);
+              if(obj.mapValue) {
+                  const m = {};
+                  for(const k in obj.mapValue.fields) m[k] = ext(obj.mapValue.fields[k]);
+                  return m;
+              }
+              if(obj.arrayValue) return obj.arrayValue.values ? obj.arrayValue.values.map(v => ext(v)) : [];
+              return null;
+          };
+          matchDoc = { id: matchId, data: () => ({
+              status: ext(d.fields.status),
+              referee: ext(d.fields.referee),
+              teamA: ext(d.fields.teamA),
+              teamB: ext(d.fields.teamB),
+              score: ext(d.fields.score),
+              sets: ext(d.fields.sets),
+              groupId: ext(d.fields.groupId),
+              round: ext(d.fields.round)
+          })};
+        }
+      }
+    }
+    
     if (!matchDoc) return;
 
     currentMatch = { id: matchId, ...matchDoc.data() };
@@ -273,11 +330,18 @@ window.openMatch = async (matchId) => {
 
     // Mark as playing
     if (m.status !== 'playing' && m.status !== 'completed') {
-      await updateDoc(doc(db, 'matches', matchId), {
-        status: 'playing',
-        referee: currentRef.id,
-        startedAt: serverTimestamp()
-      });
+      try {
+          await Promise.race([
+              updateDoc(doc(db, 'matches', matchId), {
+                status: 'playing',
+                referee: currentRef.id,
+                startedAt: serverTimestamp()
+              }),
+              timeout(2000)
+          ]);
+      } catch(e) {
+          console.warn('Offline: Could not mark match as playing on server');
+      }
     }
 
     toast(`تم فتح: ${nameA} vs ${nameB}`);
@@ -298,8 +362,32 @@ window.renderLineupForm = async () => {
         const teamAId = currentMatch.teamA?.id || currentMatch.teamA;
         const teamBId = currentMatch.teamB?.id || currentMatch.teamB;
         
-        const snap = await getDocs(collection(db, 'players'));
-        const players = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
+        let players = [];
+        try {
+            const snap = await Promise.race([getDocs(collection(db, 'players')), timeout(3000)]);
+            if (snap) players = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        } catch (e) {
+            // Fallback to REST
+            const res = await fetch('https://firestore.googleapis.com/v1/projects/mini-volley-engine/databases/(default)/documents/players');
+            const data = await res.json();
+            if (data.documents) {
+                players = data.documents.map(d => {
+                    const ext = (obj) => {
+                        if(!obj) return null;
+                        if(obj.stringValue !== undefined) return obj.stringValue;
+                        if(obj.integerValue !== undefined) return Number(obj.integerValue);
+                        return null;
+                    };
+                    return {
+                        id: d.name.split('/').pop(),
+                        name: ext(d.fields?.name),
+                        teamId: ext(d.fields?.teamId)
+                    };
+                });
+            }
+        }
+        
         window.availablePlayersA = players.filter(p => p.teamId === teamAId);
         window.availablePlayersB = players.filter(p => p.teamId === teamBId);
         
@@ -428,7 +516,6 @@ function renderBoard() {
   }
 }
 
-// ── SAVE TO FIREBASE ──
 async function saveScore() {
   if (!currentMatch) return;
   saving = true;
@@ -436,10 +523,14 @@ async function saveScore() {
   if (syncEl) { syncEl.textContent = '● جاري الحفظ...'; syncEl.style.color = 'var(--amber)'; }
 
   try {
-    await updateDoc(doc(db, 'matches', currentMatch.id), { score: liveScore });
+    const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
+    await Promise.race([
+        updateDoc(doc(db, 'matches', currentMatch.id), { score: liveScore }),
+        timeout(2000)
+    ]);
     if (syncEl) { syncEl.textContent = '✓ تم الحفظ'; syncEl.style.color = 'var(--green)'; }
   } catch (e) {
-    if (syncEl) { syncEl.textContent = '⚠ فشل الحفظ'; syncEl.style.color = 'var(--red)'; }
+    if (syncEl) { syncEl.textContent = '⚠ حفظ محلي (بدون اتصال)'; syncEl.style.color = 'var(--amber)'; }
   }
   saving = false;
 }
@@ -538,7 +629,7 @@ window.endSet = async () => {
 
   // Check if match over (best of 3)
   if (liveScore.setsA === 2 || liveScore.setsB === 2) {
-    await endMatch(); return;
+    await endMatch(true); return; // skipConfirm = true for automatic end
   }
 
   liveScore.set++;
@@ -556,22 +647,28 @@ window.endSet = async () => {
 };
 
 // ── END MATCH ──
-window.endMatch = async () => {
+window.endMatch = async (skipConfirm = false) => {
   if (!currentMatch) return;
-  if (!confirm('هل أنت متأكد من إنهاء المباراة وتسجيل النتيجة النهائية؟')) return;
+  if (!skipConfirm && !confirm('هل أنت متأكد من إنهاء المباراة وتسجيل النتيجة النهائية؟')) return;
 
   try {
-    await updateDoc(doc(db, 'matches', currentMatch.id), {
-      status: 'completed',
-      score: liveScore,
-      sets: { teamA: liveScore.setsA, teamB: liveScore.setsB },
-      endedAt: serverTimestamp()
-    });
+    const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
+    await Promise.race([
+        updateDoc(doc(db, 'matches', currentMatch.id), {
+          status: 'completed',
+          score: liveScore,
+          sets: { teamA: liveScore.setsA, teamB: liveScore.setsB },
+          endedAt: serverTimestamp()
+        }),
+        timeout(3000)
+    ]);
     toast('✓ تم تسجيل نتيجة المباراة بنجاح!');
     if (unsub) { unsub(); unsub = null; }
     setTimeout(() => backToMatches(), 1500);
   } catch (e) {
-    toast('فشل في حفظ النتيجة النهائية');
+    toast('⚠ تم الحفظ محلياً لعدم توفر اتصال بالشبكة');
+    if (unsub) { unsub(); unsub = null; }
+    setTimeout(() => backToMatches(), 1500);
   }
 };
 

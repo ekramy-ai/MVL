@@ -38,23 +38,53 @@ const init = async () => {
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const un = document.getElementById('login-username').value;
-            const pw = document.getElementById('login-password').value;
-            const settings = await DB.getSettings();
-            
-            if (un === settings.adminUsername && pw === settings.adminPassword) {
-                state.currentUserRole = 'admin';
-                finishLogin('المدير (Admin)');
-                document.querySelector('.nav-item[data-view="dashboard"]').click();
-            } else {
-                const ref = state.referees.find(r => r.name === un && r.password === pw);
+            const un = document.getElementById('login-username').value.trim();
+            const pw = document.getElementById('login-password').value.trim();
+            const btn = loginForm.querySelector('button[type="submit"]') || loginForm.querySelector('button');
+            if (btn) { btn.disabled = true; btn.textContent = 'جاري التحقق...'; }
+
+            try {
+                // 1. Get settings with timeout
+                let settings = { adminUsername: 'admin', adminPassword: 'admin' };
+                try {
+                    const settPromise = DB.getSettings();
+                    const timeoutPromise = new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 3000));
+                    settings = await Promise.race([settPromise, timeoutPromise]);
+                } catch(e) {
+                    // use defaults
+                }
+
+                // 2. Check admin
+                if (un === settings.adminUsername && pw === settings.adminPassword) {
+                    state.currentUserRole = 'admin';
+                    finishLogin('المدير (Admin)');
+                    document.querySelector('.nav-item[data-view="dashboard"]').click();
+                    return;
+                }
+
+                // 3. Check referees in memory first
+                let ref = state.referees.find(r => r.name === un && r.password === pw);
+
+                // 4. If not found in memory, try fetching referees directly
+                if (!ref) {
+                    try {
+                        const freshRefs = await DB.getReferees();
+                        ref = freshRefs.find(r => r.name === un && r.password === pw);
+                        if (freshRefs.length > 0) state.referees = freshRefs;
+                    } catch(e) { /* ignore */ }
+                }
+
                 if (ref) {
                     state.currentUserRole = ref.id;
                     finishLogin(ref.name);
-                    document.querySelector('.nav-item[data-view="referee"]').click();
+                    document.querySelector('.nav-item[data-view="referee"]')?.click();
                 } else {
                     alert('بيانات الدخول غير صحيحة');
                 }
+            } catch(e) {
+                alert('حدث خطأ أثناء تسجيل الدخول');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'دخول ⚡'; }
             }
         });
     }
@@ -228,13 +258,16 @@ const setupNavigation = () => {
             
             // Access control logic
             const publicViews = ['dashboard', 'pots', 'matchmaker', 'history', 'login'];
+            const adminOnlyViews = ['admin', 'ingest', 'referee-manage'];
+
             if (!publicViews.includes(view)) {
                 if (!state.currentUserRole) {
                     alert('يجب تسجيل الدخول للوصول إلى هذه الصفحة');
                     return;
                 }
-                if (state.currentUserRole === 'referee' && view !== 'referee') {
-                    alert('صلاحيات غير كافية');
+                // Non-admin referee (currentUserRole = ref.id string, not 'admin')
+                if (state.currentUserRole !== 'admin' && adminOnlyViews.includes(view)) {
+                    alert('صلاحيات غير كافية. هذه الصفحة للمدير فقط.');
                     return;
                 }
             }

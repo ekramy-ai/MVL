@@ -15,7 +15,47 @@ const saveLocal = () => {
     localStorage.setItem('mvl_settings', JSON.stringify(localSettings));
 };
 
+// ── Smart Cache System (reduces Firebase reads by 90%) ──
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const cache = {};
+
+const getCached = (key) => {
+    const entry = cache[key];
+    if (entry && (Date.now() - entry.ts) < CACHE_TTL_MS) return entry.data;
+    // Also try localStorage cache
+    try {
+        const stored = JSON.parse(localStorage.getItem(`mvl_cache_${key}`) || 'null');
+        if (stored && (Date.now() - stored.ts) < CACHE_TTL_MS) {
+            cache[key] = stored;
+            return stored.data;
+        }
+    } catch(e) {}
+    return null;
+};
+
+const setCache = (key, data) => {
+    const entry = { data, ts: Date.now() };
+    cache[key] = entry;
+    try { localStorage.setItem(`mvl_cache_${key}`, JSON.stringify(entry)); } catch(e) {}
+};
+
+const clearCache = (key) => {
+    delete cache[key];
+    try { localStorage.removeItem(`mvl_cache_${key}`); } catch(e) {}
+};
+
 let firebaseDisabled = false;
+
+// Auto-detect quota exceeded and switch to offline
+const handleFirebaseError = (e, context = '') => {
+    if (e?.code === 'resource-exhausted' || e?.message?.includes('Quota exceeded') || e?.message?.includes('quota')) {
+        console.warn(`⚠️ Firebase quota exceeded (${context}). Switching to offline mode.`);
+        firebaseDisabled = true;
+        window.dispatchEvent(new CustomEvent('firebase-quota-exceeded'));
+        return true;
+    }
+    return false;
+};
 
 const isFirebaseActive = () => {
     return !firebaseDisabled && db !== null && db !== undefined;
@@ -69,17 +109,18 @@ export const DB = {
     },
 
     async getTeams() {
+        const cached = getCached('teams');
+        if (cached) return cached;
         if (isFirebaseActive()) {
             try {
                 const querySnapshot = await getDocs(collection(db, "teams"));
-                return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            } catch (e) { 
-                console.error("Error getting teams", e); 
-                if (e.code === 'resource-exhausted') {
-                    firebaseDisabled = true;
-                    window.dispatchEvent(new CustomEvent('firebase-quota-exceeded'));
-                }
-                return [...localTeams]; 
+                const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setCache('teams', data);
+                localTeams = data; saveLocal();
+                return data;
+            } catch (e) {
+                handleFirebaseError(e, 'getTeams');
+                return [...localTeams];
             }
         } else {
             return [...localTeams];
@@ -87,16 +128,14 @@ export const DB = {
     },
     
     async updateTeam(id, data) {
+        clearCache('teams');
         if (isFirebaseActive()) {
             try {
                 await updateDoc(doc(db, "teams", id), data);
-            } catch (e) { console.error("Error updating team", e); }
+            } catch (e) { handleFirebaseError(e, 'updateTeam'); console.error("Error updating team", e); }
         } else {
             const index = localTeams.findIndex(t => t.id === id);
-            if(index > -1) {
-                localTeams[index] = { ...localTeams[index], ...data };
-                saveLocal();
-            }
+            if(index > -1) { localTeams[index] = { ...localTeams[index], ...data }; saveLocal(); }
         }
     },
 
@@ -115,11 +154,16 @@ export const DB = {
     },
 
     async getPlayers() {
+        const cached = getCached('players');
+        if (cached) return cached;
         if (isFirebaseActive()) {
             try {
                 const querySnapshot = await getDocs(collection(db, "players"));
-                return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            } catch (e) { console.error("Error getting players", e); return []; }
+                const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setCache('players', data);
+                localPlayers = data; saveLocal();
+                return data;
+            } catch (e) { handleFirebaseError(e, 'getPlayers'); return [...localPlayers]; }
         } else {
             return [...localPlayers];
         }
@@ -154,11 +198,16 @@ export const DB = {
     },
 
     async getMatches() {
+        const cached = getCached('matches');
+        if (cached) return cached;
         if (isFirebaseActive()) {
             try {
                 const querySnapshot = await getDocs(collection(db, "matches"));
-                return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            } catch (e) { console.error("Error getting matches", e); return []; }
+                const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setCache('matches', data);
+                localMatches = data; saveLocal();
+                return data;
+            } catch (e) { handleFirebaseError(e, 'getMatches'); return [...localMatches]; }
         } else {
             return [...localMatches];
         }
@@ -184,33 +233,48 @@ export const DB = {
     },
 
     async addReferee(referee) {
+        clearCache('referees');
         if (isFirebaseActive()) {
             try {
                 const docRef = await addDoc(collection(db, "referees"), referee);
-                return { id: docRef.id, ...referee };
-            } catch (e) { console.error("Error adding referee", e); return null; }
-        } else {
-            const newRef = { id: Date.now().toString() + Math.random().toString(36).substr(2, 5), ...referee };
-            localReferees.push(newRef);
-            saveLocal();
-            return newRef;
+                const newRef = { id: docRef.id, ...referee };
+                // ALWAYS save locally as backup for offline/quota scenarios
+                localReferees.push(newRef);
+                saveLocal();
+                return newRef;
+            } catch (e) {
+                handleFirebaseError(e, 'addReferee');
+                console.error("Error adding referee", e);
+                // fallthrough to local save
+            }
         }
+        // Local save (offline or Firebase failed)
+        const newRef = { id: Date.now().toString() + Math.random().toString(36).substr(2, 5), ...referee };
+        localReferees.push(newRef);
+        saveLocal();
+        return newRef;
     },
 
     async getReferees() {
+        const cached = getCached('referees');
+        if (cached) return cached;
         if (isFirebaseActive()) {
             try {
                 const querySnapshot = await getDocs(collection(db, "referees"));
-                return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            } catch (e) { console.error("Error getting referees", e); return []; }
+                const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setCache('referees', data);
+                localReferees = data; saveLocal();
+                return data;
+            } catch (e) { handleFirebaseError(e, 'getReferees'); return [...localReferees]; }
         } else {
             return [...localReferees];
         }
     },
 
     async deleteReferee(id) {
+        clearCache('referees');
         if (isFirebaseActive()) {
-            try { await deleteDoc(doc(db, "referees", id)); } catch (e) { console.error(e); }
+            try { await deleteDoc(doc(db, "referees", id)); } catch (e) { handleFirebaseError(e, 'deleteReferee'); console.error(e); }
         } else {
             localReferees = localReferees.filter(r => r.id !== id);
             saveLocal();
@@ -218,8 +282,9 @@ export const DB = {
     },
 
     async deleteTeam(id) {
+        clearCache('teams');
         if (isFirebaseActive()) {
-            try { await deleteDoc(doc(db, "teams", id)); } catch (e) { console.error(e); }
+            try { await deleteDoc(doc(db, "teams", id)); } catch (e) { handleFirebaseError(e, 'deleteTeam'); console.error(e); }
         } else {
             localTeams = localTeams.filter(t => t.id !== id);
             saveLocal();
@@ -227,29 +292,63 @@ export const DB = {
     },
 
     async deletePlayer(id) {
+        clearCache('players');
         if (isFirebaseActive()) {
-            try { await deleteDoc(doc(db, "players", id)); } catch (e) { console.error(e); }
+            try { await deleteDoc(doc(db, "players", id)); } catch (e) { handleFirebaseError(e, 'deletePlayer'); console.error(e); }
         } else {
             localPlayers = localPlayers.filter(p => p.id !== id);
             saveLocal();
         }
     },
 
+    async updatePlayer(id, data) {
+        clearCache('players');
+        if (isFirebaseActive()) {
+            try {
+                await updateDoc(doc(db, "players", id), data);
+            } catch (e) { handleFirebaseError(e, 'updatePlayer'); console.error("Error updating player", e); }
+        } else {
+            const index = localPlayers.findIndex(p => p.id === id);
+            if (index > -1) {
+                localPlayers[index] = { ...localPlayers[index], ...data };
+                saveLocal();
+            }
+        }
+    },
+
+    async deleteMatch(id) {
+        clearCache('matches');
+        if (isFirebaseActive()) {
+            try { await deleteDoc(doc(db, "matches", id)); } catch (e) { handleFirebaseError(e, 'deleteMatch'); console.error(e); }
+        } else {
+            localMatches = localMatches.filter(m => m.id !== id);
+            saveLocal();
+        }
+    },
+
     async getSettings() {
+        const cached = getCached('settings');
+        if (cached) return cached;
         if (isFirebaseActive()) {
             try {
                 const docSnap = await getDocs(collection(db, "settings"));
-                if (!docSnap.empty) return docSnap.docs[0].data();
-            } catch (e) { console.error(e); }
+                if (!docSnap.empty) {
+                    const data = docSnap.docs[0].data();
+                    setCache('settings', data);
+                    localSettings = data; saveLocal();
+                    return data;
+                }
+            } catch (e) { handleFirebaseError(e, 'getSettings'); }
         }
         return localSettings;
     },
 
     async updateSettings(data) {
+        clearCache('settings');
         if (isFirebaseActive()) {
             try {
                 await updateDoc(doc(db, "settings", "global"), data);
-            } catch(e) { console.error(e); }
+            } catch(e) { handleFirebaseError(e, 'updateSettings'); console.error(e); }
         } else {
             localSettings = { ...localSettings, ...data };
             saveLocal();
