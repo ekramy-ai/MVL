@@ -746,7 +746,7 @@ const setupActions = () => {
                     let currentCount = state.players.filter(p => p.teamId === team.id).length;
                     let needed = targetCount - currentCount;
                     if (needed <= 0) continue;
-                    if (currentCount + needed > 20) needed = 20 - currentCount;
+                    // Limit removed to allow exact generation as requested
 
                     for(let j = 1; j <= needed; j++) {
                         const player = {

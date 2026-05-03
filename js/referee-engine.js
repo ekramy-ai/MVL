@@ -192,6 +192,67 @@ window.loadMatches = async () => {
   }
 };
 
+// ── FILTER MATCHES ──
+window.filterMatches = function(status) {
+  window.currentFilter = status;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  const activeTab = document.querySelector(`.filter-tab[data-status="${status}"]`);
+  if (activeTab) activeTab.classList.add('active');
+  applyMatchFilter(status);
+};
+
+window.applyMatchFilter = function(status) {
+  if (!currentRef) return;
+  const isAdmin = currentRef.id === 'admin';
+  const list = document.getElementById('matches-list');
+  let filtered = window.allMatches || [];
+  
+  if (!isAdmin) {
+    filtered = filtered.filter(m => m.referee === currentRef.id);
+  }
+  
+  if (status !== 'all') {
+    filtered = filtered.filter(m => (m.status || 'pending') === status);
+  }
+  
+  if (!filtered.length) {
+    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">لا توجد مباريات</div>';
+    return;
+  }
+  
+  const order = { playing: 0, pending: 1, completed: 2 };
+  filtered.sort((a, b) => (order[a.status || 'pending'] || 1) - (order[b.status || 'pending'] || 1));
+  
+  list.innerHTML = filtered.map(m => {
+    const nameA = m.teamA?.name || m.teamAName || '؟';
+    const nameB = m.teamB?.name || m.teamBName || '؟';
+    const s = m.status || 'pending';
+    const badgeCls = s === 'playing' ? 'b-live' : s === 'completed' ? 'b-done' : 'b-pending';
+    const badgeTxt = s === 'playing' ? '● مباشر' : s === 'completed' ? '✓ منتهية' : '⏳ قادمة';
+    const scoreStr = s === 'completed'
+      ? `${m.sets?.teamA || 0} - ${m.sets?.teamB || 0}`
+      : s === 'playing'
+      ? `${m.score?.A || 0} / ${m.score?.B || 0} نقطة`
+      : '';
+      
+    const refBadge = isAdmin && m.referee ? `<span style="font-size:9px;background:var(--surface2);padding:2px 6px;border-radius:4px;color:var(--teal)">حكم: ${m.referee}</span>` : isAdmin ? `<span style="font-size:9px;background:var(--red-bg);padding:2px 6px;border-radius:4px;color:var(--red)">بدون حكم</span>` : '';
+
+    return `<div class="mc ${s}" onclick="openMatch('${m.id}')">
+      <div class="match-teams">
+        <span style="color:var(--teal)">${nameA}</span>
+        <span style="color:var(--faint);font-size:11px">${scoreStr || 'VS'}</span>
+        <span style="color:var(--amber)">${nameB}</span>
+      </div>
+      <div class="match-meta">
+        <span class="badge ${badgeCls}">${badgeTxt}</span>
+        ${m.groupId ? `<span>مجموعة ${m.groupId}</span>` : ''}
+        ${m.round ? `<span>جولة ${m.round}</span>` : ''}
+        ${refBadge}
+      </div>
+    </div>`;
+  }).join('');
+};
+
 // ── OPEN MATCH ──
 window.openMatch = async (matchId) => {
   try {
@@ -840,7 +901,7 @@ window.applyMatchFilter = function applyMatchFilter(status) {
     const st = m.status || 'pending';
     const badgeCls = st==='playing'?'b-live':st==='completed'?'b-done':'b-pending';
     const badgeTxt = st==='playing'?'● مباشر':st==='completed'?'✓ منتهية':'⏳ قادمة';
-    const sc = st==='completed'?(m.sets?m.sets.teamA+'-'+m.sets.teamB:''):st==='playing'?(m.score?(m.score.A||0)+':'+(m.score.B||0)+' نقطة'):'';
+    const sc = st==='completed'?(m.sets?m.sets.teamA+'-'+m.sets.teamB:''):st==='playing'?(m.score?(m.score.A||0)+':'+(m.score.B||0)+' نقطة':''):'';
     const adminBadge = isAdmin && m.referee ? '<span class="badge b-admin">لها حكم</span>' : (isAdmin?'<span class="badge b-pending">بلا حكم</span>':'');
     return '<div class="mc ' + st + '" onclick="openMatch(\'' + m.id + '\')">' +
       '<div class="match-teams">' +
