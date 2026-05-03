@@ -9,93 +9,134 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
   --teal:#5eead4;--teal-d:#0d9488;--teal-bg:#134e4a;
-  --amber:#f59e0b;--amber-d:#d97706;
+  --amber:#f59e0b;--amber-d:#d97706;--amber-bg:#1c1200;
   --red:#f87171;--red-d:#dc2626;--red-bg:#450a0a;
-  --green:#4ade80;--green-bg:#052e16;
+  --green:#4ade80;--green-d:#16a34a;--green-bg:#052e16;
+  --blue:#60a5fa;--blue-bg:#0c1a3a;
   --bg:#020617;--surface:#0f172a;--surface2:#1e293b;--surface3:#0a1020;
   --muted:#475569;--faint:#334155;--text:#e2e8f0;--text2:#94a3b8;
+  --border:#1e293b;
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto Sans Arabic','Segoe UI',Tahoma,sans-serif;overflow:hidden}
 #app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto}
 
 /* Topbar */
-#topbar{padding:10px 14px;border-bottom:1px solid var(--surface2);display:flex;align-items:center;justify-content:space-between;background:#030918;flex-shrink:0}
+#topbar{padding:10px 14px;border-bottom:1px solid var(--surface2);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#030918,#050d1f);flex-shrink:0}
 #topbar h1{font-size:13px;font-weight:900;letter-spacing:.1em;color:var(--teal)}
-.r-badge{font-size:10px;padding:3px 8px;border-radius:6px;background:var(--teal-bg);color:var(--teal);font-weight:700}
+.r-badge{font-size:10px;padding:3px 10px;border-radius:20px;background:linear-gradient(135deg,var(--teal-bg),#0a3830);color:var(--teal);font-weight:700;border:1px solid var(--teal-d);letter-spacing:.05em}
 
 /* Screens */
-#screens{flex:1;overflow-y:auto;overflow-x:hidden}
-.screen{display:none;padding:12px 12px 20px;animation:sIn .2s ease}
+#screens{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+.screen{display:none;padding:12px 12px 24px;animation:sIn .25s ease}
 .screen.active{display:block}
-@keyframes sIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes sIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* Cards */
-.card{background:var(--surface);border:1px solid var(--surface2);border-radius:13px;padding:14px;margin-bottom:10px}
+.card{background:var(--surface);border:1px solid var(--surface2);border-radius:14px;padding:14px;margin-bottom:10px}
 .card-sm{background:var(--surface3);border:1px solid #0e1929;border-radius:10px;padding:10px;margin-bottom:8px}
+.card-glow{box-shadow:0 0 20px rgba(94,234,212,.07)}
 
 /* Buttons */
-.btn{padding:10px 16px;border-radius:11px;border:none;cursor:pointer;font-size:12px;font-family:inherit;font-weight:700;transition:transform .1s;touch-action:manipulation;color:#fff}
-.btn:active{transform:scale(.94)}
-.btn-primary{background:var(--teal-d)}
-.btn-red{background:var(--red-d)}
-.btn-amber{background:var(--amber-d)}
+.btn{padding:10px 16px;border-radius:12px;border:none;cursor:pointer;font-size:12px;font-family:inherit;font-weight:700;transition:all .15s;touch-action:manipulation;color:#fff;letter-spacing:.02em}
+.btn:active{transform:scale(.93)}
+.btn-primary{background:linear-gradient(135deg,var(--teal-d),#0a7a6e)}
+.btn-red{background:linear-gradient(135deg,var(--red-d),#b91c1c)}
+.btn-amber{background:linear-gradient(135deg,var(--amber-d),#b45309)}
+.btn-green{background:linear-gradient(135deg,var(--green-d),#15803d)}
+.btn-blue{background:linear-gradient(135deg,#2563eb,#1d4ed8)}
 .btn-ghost{background:transparent;border:1px solid var(--surface2);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--faint);color:var(--text2)}
 .btn-full{width:100%;display:block;margin-top:8px}
 .btn-sm{padding:5px 10px;font-size:10.5px;border-radius:8px}
 
 /* Forms */
 .fg{margin-bottom:10px}
-.fl{font-size:10px;color:var(--muted);margin-bottom:3px;display:block;font-weight:700}
-.fi{width:100%;background:var(--surface2);border:1px solid var(--faint);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;font-family:inherit;outline:none}
+.fl{font-size:10px;color:var(--muted);margin-bottom:3px;display:block;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.fi{width:100%;background:var(--surface2);border:1px solid var(--faint);border-radius:9px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
 .fi:focus{border-color:var(--teal-d)}
 
 /* Hero */
-.hero{background:linear-gradient(130deg,#0a2820,#050f1e);border:1px solid var(--teal-d);border-radius:15px;padding:20px;text-align:center;margin-bottom:14px}
-.hero h2{font-size:16px;font-weight:900;color:var(--teal);margin-bottom:4px}
+.hero{background:linear-gradient(130deg,#0a2820,#050f1e);border:1px solid rgba(94,234,212,.3);border-radius:16px;padding:22px;text-align:center;margin-bottom:14px}
+.hero h2{font-size:17px;font-weight:900;color:var(--teal);margin-bottom:5px}
 .hero p{font-size:10.5px;color:var(--muted)}
 
 /* Score Board */
-.scoreboard{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:16px;background:var(--surface);border:1px solid var(--surface2);border-radius:13px;margin-bottom:10px}
-.team-col{display:flex;flex-direction:column;align-items:center;gap:8px}
-.team-name-lbl{font-size:11px;font-weight:800;text-align:center;line-height:1.3}
-.score-num{font-size:64px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;color:var(--teal)}
-.score-divider{color:var(--faint);font-size:18px;font-weight:200}
-.add-btn{width:100%;padding:14px;border-radius:12px;border:2px solid;font-size:18px;font-weight:900;cursor:pointer;font-family:inherit;transition:transform .1s;touch-action:manipulation}
-.add-btn:active{transform:scale(.9)}
+.scoreboard{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:14px;background:linear-gradient(180deg,var(--surface),var(--surface3));border:1px solid var(--surface2);border-radius:14px;margin-bottom:10px}
+.team-col{display:flex;flex-direction:column;align-items:center;gap:7px}
+.team-name-lbl{font-size:11px;font-weight:800;text-align:center;line-height:1.3;max-width:110px;word-break:break-word}
+.score-num{font-size:68px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;color:var(--teal);text-shadow:0 0 30px rgba(94,234,212,.3)}
+.score-num.amber{color:var(--amber);text-shadow:0 0 30px rgba(245,158,11,.3)}
+.score-divider{color:var(--faint);font-size:20px;font-weight:200}
+.add-btn{width:100%;padding:14px;border-radius:12px;border:2px solid;font-size:22px;font-weight:900;cursor:pointer;font-family:inherit;transition:all .15s;touch-action:manipulation;letter-spacing:-1px}
+.add-btn:active{transform:scale(.88)}
 
 /* Sets */
-.sets-row{display:flex;justify-content:space-around;padding:10px;background:var(--surface3);border-radius:10px;margin-bottom:10px}
+.sets-row{display:flex;justify-content:space-around;padding:10px 14px;background:linear-gradient(135deg,var(--surface3),#060c1a);border-radius:12px;margin-bottom:10px;border:1px solid var(--surface2)}
 .set-box{text-align:center}
-.set-num{font-size:22px;font-weight:900;color:var(--amber)}
-.set-lbl{font-size:9px;color:var(--muted)}
+.set-num{font-size:24px;font-weight:900;color:var(--amber)}
+.set-lbl{font-size:9px;color:var(--muted);margin-top:2px}
 
 /* Log */
-.log-item{display:flex;justify-content:space-between;padding:5px 8px;border-bottom:1px solid #060d1a;font-size:10.5px}
+.log-item{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-bottom:1px solid #060d1a;font-size:10.5px}
 .log-item:last-child{border-bottom:none}
 
 /* Toast */
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);color:var(--text);padding:6px 16px;border-radius:18px;font-size:11.5px;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;border:1px solid var(--faint);max-width:90%}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface2);color:var(--text);padding:7px 18px;border-radius:20px;font-size:11.5px;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;border:1px solid var(--faint);max-width:90%;box-shadow:0 4px 20px rgba(0,0,0,.5)}
 
 /* Sec title */
 .sec-title{font-size:9.5px;font-weight:700;color:var(--faint);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
 
 /* Match card */
-.mc{background:var(--surface);border:1px solid var(--surface2);border-radius:11px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
-.mc:hover{border-color:var(--faint)}
-.mc.pending{border-color:var(--surface2)}
-.mc.playing{border-color:var(--red);animation:livePulse 2s infinite}
+.mc{background:var(--surface);border:1px solid var(--surface2);border-radius:13px;padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:transparent;transition:background .2s}
+.mc:hover{border-color:var(--faint);transform:translateY(-1px)}
+.mc.pending::before{background:var(--muted)}
+.mc.playing{border-color:var(--red);animation:livePulse 2.5s infinite}
+.mc.playing::before{background:var(--red)}
 .mc.completed{border-color:#0f2e1a}
+.mc.completed::before{background:var(--green-d)}
 @keyframes livePulse{0%,100%{border-color:var(--red)}50%{border-color:#7f1d1d}}
-
-.match-teams{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;font-weight:700}
-.match-meta{font-size:9.5px;color:var(--faint);margin-top:5px;display:flex;gap:8px}
-.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:5px;font-size:9.5px;font-weight:700}
+.match-teams{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12.5px;font-weight:800}
+.match-meta{font-size:9.5px;color:var(--faint);margin-top:6px;display:flex;gap:8px;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:6px;font-size:9.5px;font-weight:700}
 .b-live{background:var(--red-bg);color:var(--red)}
 .b-done{background:var(--green-bg);color:var(--green)}
 .b-pending{background:var(--surface2);color:var(--muted)}
+.b-admin{background:rgba(96,165,250,.15);color:var(--blue)}
 
 /* Error */
 .err-msg{background:var(--red-bg);border:1px solid var(--red-d);border-radius:8px;padding:10px;font-size:11px;color:var(--red);margin-bottom:10px;display:none}
+
+/* Info bar */
+.info-bar{background:var(--surface3);border:1px solid var(--surface2);border-radius:10px;padding:8px 12px;font-size:10px;color:var(--teal);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+
+/* Lineup player chip */
+.player-chip{padding:7px 12px;border-radius:9px;font-size:11.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:600;transition:all .15s;user-select:none;border:1.5px solid transparent}
+.player-chip:active{transform:scale(.93)}
+.player-chip.selected{font-weight:800;border-color:rgba(255,255,255,.2)}
+.player-chip.played{opacity:.4;cursor:not-allowed;background:var(--surface);color:var(--muted)}
+
+/* Result screen */
+.result-hero{text-align:center;padding:24px 16px;background:linear-gradient(160deg,#0a2820,#050f1e,#1a1200);border:1px solid rgba(94,234,212,.2);border-radius:16px;margin-bottom:14px}
+.result-score{font-size:56px;font-weight:900;color:var(--amber);margin:12px 0;font-variant-numeric:tabular-nums;text-shadow:0 0 40px rgba(245,158,11,.4)}
+.result-winner{font-size:18px;font-weight:900;color:var(--green);margin-bottom:6px}
+.set-history-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.set-pill{background:var(--surface2);border-radius:8px;padding:4px 12px;font-size:11px;font-weight:700;color:var(--text2)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.stat-cell{background:var(--surface3);border-radius:10px;padding:10px;text-align:center}
+.stat-val{font-size:20px;font-weight:900;color:var(--teal)}
+.stat-lbl{font-size:9px;color:var(--muted);margin-top:2px}
+
+/* Serve block progress */
+.serve-progress{height:4px;background:var(--surface2);border-radius:4px;margin-top:4px;overflow:hidden}
+.serve-progress-bar{height:100%;background:linear-gradient(90deg,var(--teal-d),var(--teal));border-radius:4px;transition:width .3s}
+
+/* Status indicator */
+.sync-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-left:4px}
+.sync-dot.ok{background:var(--green)}
+.sync-dot.saving{background:var(--amber);animation:pulse .8s infinite}
+.sync-dot.err{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 </style>
 </head>
 <body>
@@ -104,7 +145,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto S
   <!-- Top Bar -->
   <div id="topbar">
     <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:18px">⚡</span>
+      <span style="font-size:20px">⚡</span>
       <h1>XURA — الحكام</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -119,11 +160,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto S
     <div class="screen active" id="scr-login">
       <div style="display:flex;flex-direction:column;justify-content:center;min-height:70vh;padding:10px">
         <div class="hero">
-          <div style="font-size:40px;margin-bottom:8px">👨‍⚖️</div>
+          <div style="font-size:44px;margin-bottom:10px">👨‍⚖️</div>
           <h2>دخول الحكام</h2>
           <p>أدخل اسمك وكلمة المرور للوصول إلى لوحة التحكيم</p>
         </div>
-        <div class="card">
+        <div class="card card-glow">
           <div id="login-err" class="err-msg">بيانات الدخول غير صحيحة</div>
           <div class="fg">
             <label class="fl">اسم الحكم</label>
@@ -133,7 +174,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto S
             <label class="fl">كلمة المرور</label>
             <input class="fi" type="password" id="inp-pass" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()">
           </div>
-          <button class="btn btn-primary btn-full" onclick="doLogin()" id="btn-login">دخول ⚡</button>
+          <button class="btn btn-primary btn-full" onclick="doLogin()" id="btn-login" style="padding:13px">دخول ⚡</button>
         </div>
         <div style="text-align:center;margin-top:12px">
           <a href="index.html" style="font-size:10px;color:var(--muted);text-decoration:none">← العودة للتطبيق الرئيسي</a>
@@ -143,9 +184,21 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto S
 
     <!-- MATCHES SCREEN -->
     <div class="screen" id="scr-matches">
-      <div class="sec-title" style="margin-bottom:12px">
-        <span>مباراياتي المخصصة</span>
-        <button class="btn btn-ghost btn-sm" onclick="loadMatches()">🔄 تحديث</button>
+      <div id="matches-header" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div>
+            <div style="font-size:16px;font-weight:900;color:var(--teal)" id="matches-title">مباراياتي</div>
+            <div style="font-size:10px;color:var(--muted)" id="matches-subtitle">اختر مباراة للبدء</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="loadMatches()">🔄 تحديث</button>
+        </div>
+        <!-- Filter tabs -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="filter-tabs">
+          <button class="btn btn-primary btn-sm filter-tab active" data-status="all" onclick="filterMatches('all')">الكل</button>
+          <button class="btn btn-ghost btn-sm filter-tab" data-status="pending" onclick="filterMatches('pending')">⏳ قادمة</button>
+          <button class="btn btn-ghost btn-sm filter-tab" data-status="playing" onclick="filterMatches('playing')">● مباشر</button>
+          <button class="btn btn-ghost btn-sm filter-tab" data-status="completed" onclick="filterMatches('completed')">✓ منتهية</button>
+        </div>
       </div>
       <div id="matches-list">
         <div style="text-align:center;padding:40px;color:var(--muted);font-size:12px">جاري التحميل...</div>
@@ -154,23 +207,42 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto S
 
     <!-- LINEUP SCREEN -->
     <div class="screen" id="scr-lineup">
-      <div class="hero" style="margin-bottom:10px;padding:12px">
+      <button class="btn btn-ghost btn-sm" onclick="backToMatches()" style="margin-bottom:12px">← رجوع</button>
+      <div class="hero" style="margin-bottom:12px;padding:14px">
+        <div style="font-size:11px;color:var(--amber);font-weight:700;margin-bottom:4px" id="lineup-set-label">الشوط 1</div>
         <h2 style="font-size:14px">تسجيل تشكيل الشوط</h2>
-        <p style="font-size:10px">الرجاء اختيار ترتيب الإرسال (من 4 إلى 7 لاعبين لكل فريق)</p>
+        <p style="font-size:10px;margin-top:4px" id="lineup-hint">اختر اللاعبين بالترتيب المطلوب للإرسال</p>
+        <div style="margin-top:8px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap" id="lineup-count-badges"></div>
       </div>
       <div id="lineup-form-container"></div>
-      <button class="btn btn-primary btn-full" id="btn-save-lineup" onclick="saveLineup()">حفظ التشكيل وبدء الشوط ⚡</button>
+      <button class="btn btn-primary btn-full" id="btn-save-lineup" onclick="saveLineup()" style="padding:14px;margin-top:4px">
+        حفظ التشكيل وبدء الشوط ⚡
+      </button>
     </div>
 
     <!-- LIVE MATCH SCREEN -->
     <div class="screen" id="scr-live">
-      <button class="btn btn-ghost btn-sm" onclick="backToMatches()" style="margin-bottom:10px">← رجوع</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <button class="btn btn-ghost btn-sm" onclick="backToMatches()">← رجوع</button>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)">
+          <span class="sync-dot ok" id="sync-dot"></span>
+          <span id="sync-status">متصل</span>
+        </div>
+      </div>
 
       <!-- Sets Score -->
       <div class="sets-row" id="sets-display">
-        <div class="set-box"><div class="set-num" id="sets-a">0</div><div class="set-lbl" id="team-a-sets-lbl">فريق أ</div></div>
-        <div class="set-box" style="display:flex;align-items:center"><span style="color:var(--faint);font-size:14px">أشواط</span></div>
-        <div class="set-box"><div class="set-num" id="sets-b">0</div><div class="set-lbl" id="team-b-sets-lbl">فريق ب</div></div>
+        <div class="set-box">
+          <div class="set-num" id="sets-a">0</div>
+          <div class="set-lbl" id="team-a-sets-lbl">فريق أ</div>
+        </div>
+        <div class="set-box" style="display:flex;align-items:center">
+          <span style="color:var(--faint);font-size:13px;font-weight:700">أشواط</span>
+        </div>
+        <div class="set-box">
+          <div class="set-num" id="sets-b">0</div>
+          <div class="set-lbl" id="team-b-sets-lbl">فريق ب</div>
+        </div>
       </div>
 
       <!-- Points Scoreboard -->
@@ -185,7 +257,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto S
         <div class="score-divider">:</div>
         <div class="team-col">
           <div class="team-name-lbl" id="board-name-b" style="color:var(--amber)">فريق ب</div>
-          <div class="score-num" id="board-score-b" style="color:var(--amber)">0</div>
+          <div class="score-num amber" id="board-score-b">0</div>
           <button class="add-btn" id="btn-add-b" onclick="addPoint('B')"
             style="background:rgba(245,158,11,.1);border-color:var(--amber);color:var(--amber)">＋</button>
           <button class="btn btn-ghost btn-sm" onclick="undoPoint('B')" style="margin-top:4px;width:100%">↩ تراجع</button>
@@ -196,8 +268,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto S
       <div class="card-sm" style="text-align:center;margin-bottom:10px">
         <div style="font-size:10px;color:var(--muted)">الشوط الحالي</div>
         <div id="set-info" style="font-size:16px;font-weight:900;color:var(--amber)">الشوط 1 / 25 نقطة</div>
-        <div id="serving-info" style="font-size:10px;color:var(--teal);margin-top:3px">الإرسال: —</div>
-        <div id="sync-status" style="font-size:9px;color:var(--faint);margin-top:3px">●</div>
+        <div id="serving-info" style="font-size:10px;color:var(--teal);margin-top:3px">المرسل: —</div>
+        <!-- Serve block progress bar -->
+        <div class="serve-progress" style="margin-top:6px">
+          <div class="serve-progress-bar" id="serve-progress-bar" style="width:0%"></div>
+        </div>
+        <div style="font-size:9px;color:var(--faint);margin-top:2px" id="serve-block-info"></div>
       </div>
 
       <!-- End Set / Match -->
@@ -207,24 +283,39 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto S
       </div>
 
       <!-- Event Log -->
-      <div class="sec-title"><span>سجل الأحداث</span></div>
-      <div class="card" style="padding:8px;max-height:180px;overflow-y:auto">
+      <div class="sec-title"><span>سجل الأحداث</span><span id="events-count" style="color:var(--muted)"></span></div>
+      <div class="card" style="padding:8px;max-height:160px;overflow-y:auto">
         <div id="event-log"></div>
       </div>
     </div>
 
-    <!-- MATCH SUMMARY SCREEN -->
-    <div class="screen" id="scr-summary">
-      <div class="hero" style="margin-bottom:10px;padding:12px">
-        <h2 style="font-size:14px">نهاية المباراة</h2>
-        <p style="font-size:10px">تفاصيل وسجل أحداث المباراة</p>
+    <!-- RESULT SCREEN -->
+    <div class="screen" id="scr-result">
+      <div class="result-hero" id="result-hero">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">انتهت المباراة</div>
+        <div class="result-winner" id="result-winner">—</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px" id="result-teams">— VS —</div>
+        <div class="result-score" id="result-sets">0 - 0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">نتيجة الأشواط</div>
+        <div class="set-history-row" id="result-set-history"></div>
       </div>
-      <div class="card" id="summary-score" style="text-align: center;"></div>
-      <div class="sec-title"><span>سجل الأحداث</span></div>
-      <div class="card" style="padding:8px;max-height:250px;overflow-y:auto">
-        <div id="summary-event-log"></div>
+
+      <!-- Stats -->
+      <div class="stat-grid" id="result-stats"></div>
+
+      <!-- Full Event Log -->
+      <div class="sec-title"><span>📋 سجل المباراة</span></div>
+      <div class="card" style="padding:8px;max-height:200px;overflow-y:auto;margin-bottom:10px">
+        <div id="result-event-log"></div>
       </div>
-      <button class="btn btn-primary btn-full" onclick="backToMatches()">العودة للصفحة الرئيسية 🏠</button>
+
+      <!-- Actions -->
+      <button class="btn btn-primary btn-full" onclick="backToMatches()" style="padding:14px;margin-bottom:8px">
+        🏟️ إدارة مباراة أخرى
+      </button>
+      <button class="btn btn-ghost btn-full" onclick="doLogout()" style="padding:12px">
+        تسجيل الخروج
+      </button>
     </div>
 
   </div>

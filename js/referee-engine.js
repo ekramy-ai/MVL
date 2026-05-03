@@ -1,4 +1,4 @@
-﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
   getFirestore, collection, getDocs, doc,
   updateDoc, onSnapshot, serverTimestamp
@@ -189,10 +189,11 @@ window.loadMatches = async () => {
         }
     }
 
-    // If not admin, filter by assigned referee only (no unassigned)
-    if (currentRef.id !== 'admin') {
-      matches = matches.filter(m => m.referee === currentRef.id);
-    }
+    // Filter: admin sees all, referee sees assigned only
+    window.allMatches = matches;
+    window.currentFilter = window.currentFilter || 'all';
+    applyMatchFilter(window.currentFilter);
+    return;
 
     if (!matches.length) {
       list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">لا توجد مباريات مخصصة</div>';
@@ -391,6 +392,23 @@ window.renderLineupForm = async () => {
         window.availablePlayersA = players.filter(p => p.teamId === teamAId);
         window.availablePlayersB = players.filter(p => p.teamId === teamBId);
         
+        // Compute team player counts
+        const totalA = window.availablePlayersA.length;
+        const totalB = window.availablePlayersB.length;
+        const totalPlayers = Math.min(totalA, totalB);
+        const setNum = liveScore.set || 1;
+        const reqSize = Math.max(4, Math.min(7, getSetLineupSize(Math.max(12, Math.min(21, totalPlayers)), setNum)));
+        window.lineupRequiredSize = reqSize;
+        window.lineupMaxSize = reqSize;
+        // Update hint
+        const hintEl = document.getElementById('lineup-hint');
+        if (hintEl) hintEl.textContent = 'يجب اختيار ' + reqSize + ' لاعب بالترتيب (إجمالي لاعبين: أ=' + totalA + ' ب=' + totalB + ')';
+        const lblEl = document.getElementById('lineup-set-label');
+        if (lblEl) lblEl.textContent = 'الشوط ' + (liveScore.set || 1);
+        const badgesEl = document.getElementById('lineup-count-badges');
+        if (badgesEl) badgesEl.innerHTML =
+          '<span style="background:rgba(94,234,212,.15);color:var(--teal);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700">أ: ' + window.lineupSelections.A.length + '/' + reqSize + '</span>' +
+          '<span style="background:rgba(245,158,11,.15);color:var(--amber);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700">ب: ' + window.lineupSelections.B.length + '/' + reqSize + '</span>';
         window.updateLineupUI();
     } catch(e) {
         container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red)">فشل تحميل اللاعبين.</div>';
@@ -442,8 +460,18 @@ window.updateLineupUI = () => {
         return html;
     };
 
-    container.innerHTML = renderSide('A', window.availablePlayersA, playedA, nameA, 'var(--teal)') +
-                          renderSide('B', window.availablePlayersB, playedB, nameB, 'var(--amber)');
+    // Update count badges after each selection
+    const reqSize = window.lineupRequiredSize || 4;
+    const badgesEl = document.getElementById('lineup-count-badges');
+    if (badgesEl) {
+        const selA = window.lineupSelections.A.length;
+        const selB = window.lineupSelections.B.length;
+        const colorA = selA === reqSize ? 'var(--green)' : 'var(--teal)';
+        const colorB = selB === reqSize ? 'var(--green)' : 'var(--amber)';
+        badgesEl.innerHTML =
+            '<span style="background:rgba(94,234,212,.15);color:' + colorA + ';border-radius:20px;padding:3px 12px;font-size:10px;font-weight:700">أ: ' + selA + '/' + reqSize + (selA===reqSize?' ✓':'') + '</span>' +
+            '<span style="background:rgba(245,158,11,.15);color:' + colorB + ';border-radius:20px;padding:3px 12px;font-size:10px;font-weight:700">ب: ' + selB + '/' + reqSize + (selB===reqSize?' ✓':'') + '</span>';
+    }
 };
 window.toggleLineupPlayer = (side, id, name) => {
     const list = window.lineupSelections[side];
@@ -457,21 +485,37 @@ window.toggleLineupPlayer = (side, id, name) => {
     window.updateLineupUI();
 };
 
+// ── DYNAMIC LINEUP SIZE ──
+function getSetLineupSize(totalPlayers, setNumber) {
+  const base = Math.floor(totalPlayers / 3);
+  const rem = totalPlayers % 3;
+  return setNumber === 3 ? base + rem : base;
+}
+
+window.toggleLineupPlayer = (side, id, name) => {
+    const list = window.lineupSelections[side];
+    const max = window.lineupMaxSize || 7;
+    const idx = list.findIndex(function(p){ return p.id === id; });
+    if (idx > -1) { list.splice(idx, 1); }
+    else {
+        if (list.length >= max) { toast("الحد الأقصى " + max + " لاعب لهذا الشوط"); return; }
+        list.push({ id: id, name: name });
+    }
+    window.updateLineupUI();
+};
+
 window.saveLineup = async () => {
     const chkA = window.lineupSelections.A;
     const chkB = window.lineupSelections.B;
-    
-    if (chkA.length < 4 || chkA.length > 7) { toast('فريق أ: اختر من 4 إلى 7 لاعبين للتشكيل'); return; }
-    if (chkB.length < 4 || chkB.length > 7) { toast('فريق ب: اختر من 4 إلى 7 لاعبين للتشكيل'); return; }
-    
-    liveScore.lineupA = [...chkA];
-    liveScore.lineupB = [...chkB];
-    
+    const required = window.lineupRequiredSize || 4;
+    if (chkA.length !== required) { toast("فريق أ: يجب اختيار " + required + " لاعب بالضبط"); return; }
+    if (chkB.length !== required) { toast("فريق ب: يجب اختيار " + required + " لاعب بالضبط"); return; }
+    liveScore.lineupA = chkA.slice();
+    liveScore.lineupB = chkB.slice();
     await saveScore();
     renderBoard();
-    show('scr-live');
+    show("scr-live");
 };
-
 // ── RENDER BOARD ──
 function renderBoard() {
   document.getElementById('board-score-a').textContent = liveScore.A;
@@ -482,16 +526,18 @@ function renderBoard() {
   const limit = liveScore.set === 5 ? 15 : 25;
   document.getElementById('set-info').textContent = `الشوط ${liveScore.set} / ${limit} نقطة للفوز`;
 
+  const syncDot = document.getElementById('sync-dot');
+  const syncEl = document.getElementById('sync-status');
+  // (sync state handled in saveScore)
   const nameA = document.getElementById('board-name-a').textContent;
   const nameB = document.getElementById('board-name-b').textContent;
-  let servingPlayer = '—';
   const sIndex = liveScore.servesInBlock || 0;
-  if (liveScore.serving === 'A' && liveScore.lineupA && liveScore.lineupA.length > sIndex) {
-      servingPlayer = liveScore.lineupA[sIndex].name;
-  } else if (liveScore.serving === 'B' && liveScore.lineupB && liveScore.lineupB.length > sIndex) {
-      servingPlayer = liveScore.lineupB[sIndex].name;
-  }
-  document.getElementById('serving-info').textContent = `المرسل: ${servingPlayer} (الإرسال ${sIndex + 1} من 4)`;
+  const serveBlockSize = 4;
+  const pct = (sIndex / serveBlockSize) * 100;
+  const progressBar = document.getElementById('serve-progress-bar');
+  if (progressBar) progressBar.style.width = pct + '%';
+  const blockInfoEl = document.getElementById('serve-block-info');
+  if (blockInfoEl) blockInfoEl.textContent = 'إرسال ' + (sIndex + 1) + ' من ' + serveBlockSize + ' — الفريق المرسل: ' + (liveScore.serving === 'A' ? nameA : nameB);
 
   const diff = Math.abs(liveScore.A - liveScore.B);
   if ((liveScore.A >= 25 || liveScore.B >= 25) && diff >= 2) {
@@ -528,18 +574,21 @@ function renderBoard() {
 async function saveScore() {
   if (!currentMatch) return;
   saving = true;
+  const dot = document.getElementById('sync-dot');
   const syncEl = document.getElementById('sync-status');
-  if (syncEl) { syncEl.textContent = '● جاري الحفظ...'; syncEl.style.color = 'var(--amber)'; }
-
+  if (dot) { dot.className = 'sync-dot saving'; }
+  if (syncEl) syncEl.textContent = 'جاري الحفظ...';
   try {
     const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
     await Promise.race([
         updateDoc(doc(db, 'matches', currentMatch.id), { score: liveScore }),
         timeout(2000)
     ]);
-    if (syncEl) { syncEl.textContent = '✓ تم الحفظ'; syncEl.style.color = 'var(--green)'; }
+    if (dot) { dot.className = 'sync-dot ok'; }
+    if (syncEl) syncEl.textContent = 'محفوظ ✓';
   } catch (e) {
-    if (syncEl) { syncEl.textContent = '⚠ حفظ محلي (بدون اتصال)'; syncEl.style.color = 'var(--amber)'; }
+    if (dot) { dot.className = 'sync-dot err'; }
+    if (syncEl) syncEl.textContent = 'محلي فقط';
   }
   saving = false;
 }
@@ -673,12 +722,50 @@ window.endMatch = async (skipConfirm = false) => {
     ]);
     toast('✓ تم تسجيل نتيجة المباراة بنجاح!');
     if (unsub) { unsub(); unsub = null; }
-    setTimeout(() => backToMatches(), 1500);
+    setTimeout(function() { showResultScreen(); }, 800);
   } catch (e) {
-    toast('⚠ تم الحفظ محلياً لعدم توفر اتصال بالشبكة');
+    toast('⚠ تم الحفظ محلياً');
     if (unsub) { unsub(); unsub = null; }
-    setTimeout(() => backToMatches(), 1500);
+    setTimeout(function() { showResultScreen(); }, 800);
   }
+};
+
+// ── RESULT SCREEN ──
+window.showResultScreen = function showResultScreen() {
+  const m = currentMatch;
+  if (!m) { backToMatches(); return; }
+  const nameA = document.getElementById('board-name-a').textContent;
+  const nameB = document.getElementById('board-name-b').textContent;
+  const sA = liveScore.setsA, sB = liveScore.setsB;
+  const winner = sA > sB ? nameA : nameB;
+  const el = function(id) { return document.getElementById(id); };
+  el('result-winner').textContent = '🏆 ' + winner + ' يفوز!';
+  el('result-teams').textContent = nameA + ' ضد ' + nameB;
+  el('result-sets').textContent = sA + ' - ' + sB;
+  // Set history
+  const hist = liveScore.setScores || [];
+  el('result-set-history').innerHTML = hist.map(function(s,i) {
+    return '<span class="set-pill">ش' + (i+1) + ': ' + s.A + '-' + s.B + '</span>';
+  }).join('');
+  // Stats
+  const totalPtsA = (liveScore.events || []).filter(function(e){return e.side==='A';}).length;
+  const totalPtsB = (liveScore.events || []).filter(function(e){return e.side==='B';}).length;
+  el('result-stats').innerHTML =
+    '<div class="stat-cell"><div class="stat-val" style="color:var(--teal)">' + totalPtsA + '</div><div class="stat-lbl">نقاط ' + nameA + '</div></div>' +
+    '<div class="stat-cell"><div class="stat-val" style="color:var(--amber)">' + totalPtsB + '</div><div class="stat-lbl">نقاط ' + nameB + '</div></div>' +
+    '<div class="stat-cell"><div class="stat-val">' + sA + '</div><div class="stat-lbl">أشواط ' + nameA + '</div></div>' +
+    '<div class="stat-cell"><div class="stat-val">' + sB + '</div><div class="stat-lbl">أشواط ' + nameB + '</div></div>';
+  // Events log
+  const evLog = el('result-event-log');
+  const evs = liveScore.events || [];
+  if (evs.length) {
+    evLog.innerHTML = evs.slice().reverse().map(function(ev) {
+      return '<div class="log-item"><span style="color:' + (ev.side==='A'?'var(--teal)':'var(--amber)') + ';font-weight:700">' + (ev.side==='A'?nameA:nameB) + '</span><span style="color:var(--text2)">' + ev.scoreA + ' : ' + ev.scoreB + '</span><span style="color:var(--faint)">' + (ev.time||'') + '</span></div>';
+    }).join('');
+  } else {
+    evLog.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:11px">لا أحداث مسجلة</div>';
+  }
+  show('scr-result');
 };
 
 // ── BACK ──
@@ -687,6 +774,64 @@ window.backToMatches = () => {
   currentMatch = null;
   loadMatches();
   show('scr-matches');
+};
+
+// ── MATCH FILTER ──
+window.allMatches = [];
+window.currentFilter = 'all';
+
+window.filterMatches = function(status) {
+  window.currentFilter = status;
+  document.querySelectorAll('.filter-tab').forEach(function(b){
+    b.classList.remove('active');
+    b.classList.add('btn-ghost');
+    b.classList.remove('btn-primary');
+  });
+  const activeBtn = document.querySelector('.filter-tab[data-status="' + status + '"]');
+  if (activeBtn) { activeBtn.classList.add('active','btn-primary'); activeBtn.classList.remove('btn-ghost'); }
+  applyMatchFilter(status);
+};
+
+window.applyMatchFilter = function applyMatchFilter(status) {
+  const isAdmin = currentRef && currentRef.id === 'admin';
+  let matches = (window.allMatches || []).slice();
+  // Admin sees all; referee sees only assigned
+  if (!isAdmin) matches = matches.filter(function(m){ return m.referee === currentRef.id; });
+  // Status filter
+  if (status && status !== 'all') matches = matches.filter(function(m){ return m.status === status; });
+  const order = { playing: 0, pending: 1, completed: 2 };
+  matches.sort(function(a,b){ return (order[a.status]||1)-(order[b.status]||1); });
+  const list = document.getElementById('matches-list');
+  const title = document.getElementById('matches-title');
+  const sub = document.getElementById('matches-subtitle');
+  if (title) title.textContent = isAdmin ? 'جميع المباريات' : 'مباراياتي';
+  if (sub) sub.textContent = matches.length + ' مباراة';
+  if (!matches.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:12px">لا توجد مباريات' + (isAdmin?'':' مخصصة لك') + '</div>';
+    return;
+  }
+  list.innerHTML = matches.map(function(m) {
+    const nameA = m.teamA ? (m.teamA.name || m.teamA) : (m.teamAName || '؟');
+    const nameB = m.teamB ? (m.teamB.name || m.teamB) : (m.teamBName || '؟');
+    const st = m.status || 'pending';
+    const badgeCls = st==='playing'?'b-live':st==='completed'?'b-done':'b-pending';
+    const badgeTxt = st==='playing'?'● مباشر':st==='completed'?'✓ منتهية':'⏳ قادمة';
+    const sc = st==='completed'?(m.sets?m.sets.teamA+'-'+m.sets.teamB:''):st==='playing'?(m.score?(m.score.A||0)+':'+(m.score.B||0)+' نقطة'):'';
+    const adminBadge = isAdmin && m.referee ? '<span class="badge b-admin">لها حكم</span>' : (isAdmin?'<span class="badge b-pending">بلا حكم</span>':'');
+    return '<div class="mc ' + st + '" onclick="openMatch(\'' + m.id + '\')">' +
+      '<div class="match-teams">' +
+        '<span style="color:var(--teal)">' + nameA + '</span>' +
+        '<span style="color:var(--faint);font-size:11px">' + (sc||'VS') + '</span>' +
+        '<span style="color:var(--amber)">' + nameB + '</span>' +
+      '</div>' +
+      '<div class="match-meta">' +
+        '<span class="badge ' + badgeCls + '">' + badgeTxt + '</span>' +
+        (m.groupId?'<span>مجموعة ' + m.groupId + '</span>':'') +
+        (m.round?'<span>جولة ' + m.round + '</span>':'') +
+        adminBadge +
+      '</div>' +
+    '</div>';
+  }).join('');
 };
 
 // ── LOGOUT ──
