@@ -399,43 +399,44 @@ window.renderLineupForm = async () => {
 
 window.updateLineupUI = () => {
     const container = document.getElementById('lineup-form-container');
-    const nameA = currentMatch.teamA?.name || currentMatch.teamAName || 'فريق أ';
-    const nameB = currentMatch.teamB?.name || currentMatch.teamBName || 'فريق ب';
+    const nameA = currentMatch.teamA ? (currentMatch.teamA.name || '') : (currentMatch.teamAName || 'فريق أ');
+    const nameB = currentMatch.teamB ? (currentMatch.teamB.name || '') : (currentMatch.teamBName || 'فريق ب');
     
     const playedA = liveScore.playedA || [];
     const playedB = liveScore.playedB || [];
 
-    const renderSide = (side, players, played, name, color) => {
+    const renderSide = (side, players, played, teamName, color) => {
         const sel = window.lineupSelections[side];
-        return `
-          <div class="card" style="margin-bottom:10px">
-            <h3 style="color:${color};margin-bottom:10px;font-size:12px">${name} <span style="color:var(--text2);font-size:10px">(اختر بالترتيب المطلوب للإرسال)</span></h3>
-            <div style="display:flex;flex-wrap:wrap;gap:6px">
-              ${players.map(p => {
-                  if (played.includes(p.id)) {
-                      return \`<div style="padding:6px 10px;border-radius:6px;font-size:11px;background:var(--surface);color:var(--muted);opacity:0.6;border:1px dashed var(--border)">\${p.name} (لعب سابقاً)</div>\`;
-                  }
-                  const selIdx = sel.findIndex(s => s.id === p.id);
-                  const isSel = selIdx > -1;
-                  const bg = isSel ? color : 'var(--surface2)';
-                  const txt = isSel ? '#000' : 'var(--text)';
-                  const badge = isSel ? \`<span style="background:rgba(255,255,255,0.8);color:#000;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;margin-right:6px;font-weight:bold">\${selIdx + 1}</span>\` : '';
-                  
-                  return \`<div onclick="toggleLineupPlayer('\${side}', '\${p.id}', '\${p.name.replace(/'/g, "\\\\'")}')" 
-                               style="padding:6px 10px;border-radius:6px;font-size:11px;background:\${bg};color:\${txt};cursor:pointer;display:flex;align-items:center;font-weight:\${isSel?'bold':'normal'};user-select:none">
-                            \${p.name} \${badge}
-                          </div>\`;
-              }).join('')}
-              ${players.length === 0 ? '<div style="font-size:10px;color:var(--muted)">لا يوجد لاعبين مسجلين</div>' : ''}
-            </div>
-          </div>
-        `;
+        let html = '<div class="card" style="margin-bottom:10px">';
+        html += '<h3 style="color:' + color + ';margin-bottom:10px;font-size:12px">' + teamName + ' <span style="color:var(--text2);font-size:10px">(اختر بالترتيب المطلوب للإرسال)</span></h3>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+        
+        if (players.length === 0) {
+            html += '<div style="font-size:10px;color:var(--muted)">لا يوجد لاعبين مسجلين</div>';
+        }
+        
+        players.forEach(function(p) {
+            if (played.includes(p.id)) {
+                html += '<div style="padding:6px 10px;border-radius:6px;font-size:11px;background:var(--surface);color:var(--muted);opacity:0.6;border:1px dashed var(--border)">' + p.name + ' (لعب سابقاً)</div>';
+                return;
+            }
+            const selIdx = sel.findIndex(function(s) { return s.id === p.id; });
+            const isSel = selIdx > -1;
+            const bg = isSel ? color : 'var(--surface2)';
+            const txt = isSel ? '#000' : 'var(--text)';
+            const fw = isSel ? 'bold' : 'normal';
+            const badge = isSel ? '<span style="background:rgba(255,255,255,0.8);color:#000;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;margin-right:6px;font-weight:bold">' + (selIdx + 1) + '</span>' : '';
+            const safeName = p.name.replace(/'/g, "\\'");
+            html += '<div onclick="toggleLineupPlayer(\'' + side + '\', \'' + p.id + '\', \'' + safeName + '\')" style="padding:6px 10px;border-radius:6px;font-size:11px;background:' + bg + ';color:' + txt + ';cursor:pointer;display:flex;align-items:center;font-weight:' + fw + ';user-select:none">' + p.name + ' ' + badge + '</div>';
+        });
+        
+        html += '</div></div>';
+        return html;
     };
 
     container.innerHTML = renderSide('A', window.availablePlayersA, playedA, nameA, 'var(--teal)') +
                           renderSide('B', window.availablePlayersB, playedB, nameB, 'var(--amber)');
 };
-
 window.toggleLineupPlayer = (side, id, name) => {
     const list = window.lineupSelections[side];
     const idx = list.findIndex(p => p.id === id);
