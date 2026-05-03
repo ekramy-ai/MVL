@@ -22,6 +22,8 @@ let currentMatch = null;
 let liveScore = { A: 0, B: 0, setsA: 0, setsB: 0, set: 1, serving: 'A', events: [] };
 let unsub = null;
 let saving = false;
+let pendingServeInfo = null; // {playerId, playerName, side}
+const serveStatsKey = 'mvl_serve_stats_all';
 
 // ── Toast ──
 function toast(msg) {
@@ -145,92 +147,48 @@ window.doLogin = async () => {
 window.loadMatches = async () => {
   const list = document.getElementById('matches-list');
   list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">جاري التحميل...</div>';
-
   try {
     let matches = [];
-    const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
+    const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
+    // Try Firebase SDK
     try {
-        const snap = await Promise.race([getDocs(collection(db, 'matches')), timeout(3000)]);
-        matches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    } catch(sdkError) {
-        // Fallback to REST API
-        const res = await fetch('https://firestore.googleapis.com/v1/projects/mini-volley-engine/databases/(default)/documents/matches');
-        const data = await res.json();
-        if (data.documents) {
+      const snap = await Promise.race([getDocs(collection(db, 'matches')), timeout(4000)]);
+      matches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e) {
+      // Try REST API
+      try {
+        const res = await Promise.race([
+          fetch('https://firestore.googleapis.com/v1/projects/mini-volley-engine/databases/(default)/documents/matches'),
+          timeout(5000)
+        ]);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.documents) {
             matches = data.documents.map(d => {
-                const f = d.fields || {};
-                
-                // Helper to safely extract Firestore values
-                const ext = (obj) => {
-                    if(!obj) return null;
-                    if(obj.stringValue !== undefined) return obj.stringValue;
-                    if(obj.integerValue !== undefined) return Number(obj.integerValue);
-                    if(obj.mapValue) {
-                        const m = {};
-                        for(const k in obj.mapValue.fields) m[k] = ext(obj.mapValue.fields[k]);
-                        return m;
-                    }
-                    if(obj.arrayValue) return obj.arrayValue.values ? obj.arrayValue.values.map(v => ext(v)) : [];
-                    return null;
-                };
-
-                return {
-                    id: d.name.split('/').pop(),
-                    status: ext(f.status),
-                    referee: ext(f.referee),
-                    teamA: ext(f.teamA),
-                    teamB: ext(f.teamB),
-                    score: ext(f.score),
-                    sets: ext(f.sets),
-                    groupId: ext(f.groupId),
-                    round: ext(f.round)
-                };
+              const f = d.fields || {};
+              const ext = (o) => {
+                if (!o) return null;
+                if (o.stringValue !== undefined) return o.stringValue;
+                if (o.integerValue !== undefined) return Number(o.integerValue);
+                if (o.booleanValue !== undefined) return o.booleanValue;
+                if (o.mapValue) { const m = {}; for (const k in o.mapValue.fields) m[k] = ext(o.mapValue.fields[k]); return m; }
+                if (o.arrayValue) return (o.arrayValue.values || []).map(v => ext(v));
+                return null;
+              };
+              return { id: d.name.split('/').pop(), status: ext(f.status), referee: ext(f.referee), teamA: ext(f.teamA), teamB: ext(f.teamB), score: ext(f.score), sets: ext(f.sets), groupId: ext(f.groupId), round: ext(f.round) };
             });
+          }
         }
+      } catch(e2) { /* offline */ }
     }
-
-    // Filter: admin sees all, referee sees assigned only
     window.allMatches = matches;
     window.currentFilter = window.currentFilter || 'all';
     applyMatchFilter(window.currentFilter);
-    return;
-
-    if (!matches.length) {
-      list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">لا توجد مباريات مخصصة</div>';
-      return;
-    }
-
-    // Sort: playing first, then pending, then completed
-    const order = { playing: 0, pending: 1, completed: 2 };
-    matches.sort((a, b) => (order[a.status] || 1) - (order[b.status] || 1));
-
-    list.innerHTML = matches.map(m => {
-      const nameA = m.teamA?.name || m.teamAName || '؟';
-      const nameB = m.teamB?.name || m.teamBName || '؟';
-      const status = m.status || 'pending';
-      const badgeCls = status === 'playing' ? 'b-live' : status === 'completed' ? 'b-done' : 'b-pending';
-      const badgeTxt = status === 'playing' ? '● مباشر' : status === 'completed' ? '✓ منتهية' : '⏳ قادمة';
-      const scoreStr = status === 'completed'
-        ? `${m.sets?.teamA || 0} - ${m.sets?.teamB || 0}`
-        : status === 'playing'
-        ? `${m.score?.A || 0} / ${m.score?.B || 0} نقطة`
-        : '';
-
-      return `<div class="mc ${status}" onclick="openMatch('${m.id}')">
-        <div class="match-teams">
-          <span style="color:var(--teal)">${nameA}</span>
-          <span style="color:var(--faint);font-size:11px">${scoreStr || 'VS'}</span>
-          <span style="color:var(--amber)">${nameB}</span>
-        </div>
-        <div class="match-meta">
-          <span class="badge ${badgeCls}">${badgeTxt}</span>
-          ${m.groupId ? `<span>مجموعة ${m.groupId}</span>` : ''}
-          ${m.round ? `<span>جولة ${m.round}</span>` : ''}
-        </div>
-      </div>`;
-    }).join('');
   } catch (e) {
-    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--red);font-size:12px">فشل تحميل المباريات. تحقق من الاتصال.</div>';
+    console.error('loadMatches:', e);
+    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--amber);font-size:12px">⚠ يعمل بدون اتصال</div>';
+    window.allMatches = window.allMatches || [];
+    applyMatchFilter(window.currentFilter || 'all');
   }
 };
 
@@ -765,6 +723,27 @@ window.showResultScreen = function showResultScreen() {
   } else {
     evLog.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:11px">لا أحداث مسجلة</div>';
   }
+  // Serve leaderboard
+  const top3 = getTopServers(3);
+  const medals = ['🥇','🥈','🥉'];
+  const leaderEl = document.getElementById('result-serve-leaders');
+  if (leaderEl) {
+    leaderEl.innerHTML = top3.length ? top3.map(function(p,i){
+      const total = p.aces + p.faults + p.normals;
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px;margin-bottom:6px">' +
+        '<span style="font-size:20px">' + medals[i] + '</span>' +
+        '<div style="flex:1">' +
+          '<div style="font-size:12px;font-weight:700">' + p.name + '</div>' +
+          '<div style="font-size:10px;color:var(--muted)">' +
+            '<span style="color:var(--teal)">⚡ ' + p.aces + ' إيس</span>  ' +
+            '<span style="color:var(--red)">❌ ' + p.faults + ' خطأ</span>  ' +
+            '<span style="color:var(--text2)">▶ ' + p.normals + ' عادي</span>' +
+          '</div>' +
+        '</div>' +
+        '<div style="font-size:14px;font-weight:900;color:var(--amber)">' + (p.aces*3 + p.normals) + ' نقطة</div>' +
+      '</div>';
+    }).join('') : '<div style="text-align:center;padding:16px;color:var(--muted);font-size:11px">لا إحصائيات إرسال بعد</div>';
+  }
   show('scr-result');
 };
 
@@ -775,6 +754,50 @@ window.backToMatches = () => {
   loadMatches();
   show('scr-matches');
 };
+
+// ── SERVE TRACKING ──
+function showServeModal() {
+  if (!pendingServeInfo || !pendingServeInfo.player) return;
+  const modal = document.getElementById('serve-modal');
+  const lbl = document.getElementById('serve-player-name');
+  if (!modal) return;
+  if (lbl) lbl.textContent = pendingServeInfo.player.name;
+  modal.style.display = 'flex';
+}
+
+window.recordServe = function(type) {
+  const modal = document.getElementById('serve-modal');
+  if (modal) modal.style.display = 'none';
+  if (!pendingServeInfo || !pendingServeInfo.player) return;
+  const p = pendingServeInfo.player;
+  const all = JSON.parse(localStorage.getItem(serveStatsKey) || '{}');
+  if (!all[p.id]) all[p.id] = { name: p.name, aces: 0, faults: 0, normals: 0 };
+  all[p.id].name = p.name;
+  if (type === 'ace') all[p.id].aces++;
+  else if (type === 'fault') all[p.id].faults++;
+  else all[p.id].normals++;
+  localStorage.setItem(serveStatsKey, JSON.stringify(all));
+  if (!liveScore.serveStats) liveScore.serveStats = {};
+  if (!liveScore.serveStats[p.id]) liveScore.serveStats[p.id] = { name: p.name, aces: 0, faults: 0, normals: 0 };
+  if (type === 'ace') liveScore.serveStats[p.id].aces++;
+  else if (type === 'fault') liveScore.serveStats[p.id].faults++;
+  else liveScore.serveStats[p.id].normals++;
+  pendingServeInfo = null;
+  toast(type === 'ace' ? '⚡ إرسال بنقطة!' : type === 'fault' ? '❌ إرسال ضائع' : '▶ إرسال عادي');
+};
+
+window.dismissServeModal = function() {
+  const modal = document.getElementById('serve-modal');
+  if (modal) modal.style.display = 'none';
+  pendingServeInfo = null;
+};
+
+function getTopServers(n) {
+  const all = JSON.parse(localStorage.getItem(serveStatsKey) || '{}');
+  return Object.values(all)
+    .sort(function(a,b){ return (b.aces*3 + b.normals) - (a.aces*3 + a.normals); })
+    .slice(0, n);
+}
 
 // ── MATCH FILTER ──
 window.allMatches = [];
@@ -793,7 +816,8 @@ window.filterMatches = function(status) {
 };
 
 window.applyMatchFilter = function applyMatchFilter(status) {
-  const isAdmin = currentRef && currentRef.id === 'admin';
+  if (!currentRef) return;
+  const isAdmin = currentRef.id === 'admin';
   let matches = (window.allMatches || []).slice();
   // Admin sees all; referee sees only assigned
   if (!isAdmin) matches = matches.filter(function(m){ return m.referee === currentRef.id; });
